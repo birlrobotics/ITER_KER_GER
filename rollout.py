@@ -126,11 +126,19 @@ class RolloutWorker:
             acts.append(u.copy())
             goals.append(self.g.copy())
 
-            # ----------------mirror---------------------------
-            s_obs.append(self.mirror.y_mirror(o.copy()))
-            s_achieved_goals.append(self.mirror.y_mirror(ag.copy()))
-            s_acts.append(self.mirror.y_mirror(u.copy()))
-            s_goals.append(self.mirror.y_mirror(self.g.copy()))
+            # ----------------y_mirror---------------------------
+            # s_obs.append(self.mirror.y_mirror(o.copy()))
+            # s_achieved_goals.append(self.mirror.y_mirror(ag.copy()))
+            # s_acts.append(self.mirror.y_mirror(u.copy()))
+            # s_goals.append(self.mirror.y_mirror(self.g.copy()))
+            # ----------------end---------------------------
+
+            # ----------------kaleidoscope_robot---------------------------
+            s_obs.append(self.mirror.kaleidoscope_robot(o.copy()))
+            s_achieved_goals.append(self.mirror.kaleidoscope_robot(ag.copy()))
+            s_acts.append(self.mirror.kaleidoscope_robot(u.copy()))
+            s_goals.append(self.mirror.kaleidoscope_robot(self.g.copy()))
+            set_trace()
             # ----------------end---------------------------
 
             o[...] = o_new
@@ -139,12 +147,17 @@ class RolloutWorker:
         obs.append(o.copy())
         achieved_goals.append(ag.copy())
 
-        # ----------------mirror---------------------------
-        # terminal state
-        s_obs.append(self.mirror.y_mirror(o.copy()))
-        s_achieved_goals.append(self.mirror.y_mirror(ag.copy()))
-        # ----------------end---------------------------
+        # # ----------------y_mirror---------------------------
+        # # terminal state
+        # s_obs.append(self.mirror.y_mirror(o.copy()))
+        # s_achieved_goals.append(self.mirror.y_mirror(ag.copy()))
+        # # ----------------end---------------------------
 
+        # ----------------kaleidoscope_robot---------------------------
+        # terminal state
+        s_obs.append(self.mirror.kaleidoscope_robot(o.copy()))
+        s_achieved_goals.append(self.mirror.kaleidoscope_robot(ag.copy()))
+        # ----------------end---------------------------
 
         episode = dict(o=obs,
                        u=acts,
@@ -194,7 +207,8 @@ class RolloutWorker:
         # set_trace()
         return episode_batch
 
-
+    def mirror_learning_type(self):
+        pass
 
 
     def clear_history(self):
