@@ -210,7 +210,7 @@ def main(args):
     extra_args = parse_cmdline_kwargs(unknown_args)
 
     # =========modifiy the log path with time=============
-    time = datetime.datetime.now().strftime('%y_%a_%b_%d_%H:%M')
+    time = datetime.datetime.now().strftime('%y_%a_%b_%d_%H:%M:%S:%f')
     log_path_custom = os.path.join(args.log_path,time)
     # =====================================================
 
