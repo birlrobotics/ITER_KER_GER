@@ -49,7 +49,6 @@ class RolloutWorker:
         self.initial_o = self.obs_dict['observation']
         self.initial_ag = self.obs_dict['achieved_goal']
         self.g = self.obs_dict['desired_goal']
-        # set_trace()
 
     def generate_rollouts(self):
         """Performs `rollout_batch_size` rollouts in parallel for time horizon `T` with the current
@@ -96,9 +95,7 @@ class RolloutWorker:
             ag_new = np.empty((self.rollout_batch_size, self.dims['g']))
             success = np.zeros(self.rollout_batch_size)
             # compute new states and observations, do not return the reward, and get it from her_sampler.py
-            # set_trace()
             obs_dict_new, _, done, info = self.venv.step(u)
-            # set_trace()
             o_new = obs_dict_new['observation']
             ag_new = obs_dict_new['achieved_goal']
             success = np.array([i.get('is_success', 0.0) for i in info])
@@ -138,7 +135,6 @@ class RolloutWorker:
             s_achieved_goals.append(self.mirror.kaleidoscope_robot(ag.copy()))
             s_acts.append(self.mirror.kaleidoscope_robot(u.copy()))
             s_goals.append(self.mirror.kaleidoscope_robot(self.g.copy()))
-            set_trace()
             # ----------------end---------------------------
 
             o[...] = o_new
@@ -204,7 +200,6 @@ class RolloutWorker:
             return episode_batch, s_episode_batch
         # ----------------end---------------------------
 
-        # set_trace()
         return episode_batch
 
     def mirror_learning_type(self):

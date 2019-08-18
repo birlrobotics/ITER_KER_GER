@@ -73,7 +73,6 @@ def train(args, extra_args):
             alg_kwargs['network'] = get_default_network(env_type)
 
     print('Training {} on {}:{} with arguments \n{}'.format(args.alg, env_type, env_id, alg_kwargs))
-    # set_trace()
 
     model = learn(
         env=env,
@@ -112,7 +111,6 @@ def build_env(args):
         get_session(config=config)
 
         flatten_dict_observations = alg not in {'her'}
-        # set_trace()
         env = make_vec_env(env_id, env_type, args.num_env or 1, seed, reward_scale=args.reward_scale, flatten_dict_observations=flatten_dict_observations)
 
         if env_type == 'mujoco':
@@ -204,7 +202,6 @@ def configure_logger(log_path, **kwargs):
 
 def main(args):
     # configure logger, disable logging in child MPI processes (with rank > 0)
-    # set_trace()
     arg_parser = common_arg_parser()
     args, unknown_args = arg_parser.parse_known_args(args)
     extra_args = parse_cmdline_kwargs(unknown_args)
@@ -222,17 +219,14 @@ def main(args):
     else:
         rank = MPI.COMM_WORLD.Get_rank()
         configure_logger(log_path_custom, format_strs=[])
-    # set_trace()
 
     model, env = train(args, extra_args)
-    set_trace()
     if args.save_path is not None and rank == 0:
         save_path = osp.expanduser(args.save_path)
 
         # =========modifiy the save path with time=============
         save_path_custom = os.path.join(save_path,time)
         # =====================================================
-        set_trace()
         model.save(save_path)
 
     if args.play:

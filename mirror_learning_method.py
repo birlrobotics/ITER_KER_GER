@@ -110,7 +110,6 @@ class mirror_learning:
 
     def orientation_mat_symmetric_with_rot_plane(self, theta_a, rot_z_theta, inv_rot_z_theta, i):
         # Point 'a' orientation euler angle = theta_a
-        # set_trace()
         # euler to rot matrix for transform
         v_r_a = r_tool.euler2mat(theta_a)
         # transform to the O cordinate from S cordinate

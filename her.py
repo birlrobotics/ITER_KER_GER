@@ -77,7 +77,6 @@ def train(*, policy, rollout_worker, evaluator,
 
         # save the policy if it's better than the previous ones
         success_rate = mpi_average(evaluator.current_success_rate())
-        # set_trace()
         writer.add_scalar(env_name+'_success_rate', success_rate, epoch)
         if rank == 0 and success_rate >= best_success_rate and save_path:
             best_success_rate = success_rate
@@ -111,7 +110,6 @@ def learn(*, network, env, total_timesteps,
     save_path=None,
     **kwargs
 ):
-    # set_trace()
 
     override_params = override_params or {}
     if MPI is not None:
