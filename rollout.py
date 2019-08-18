@@ -5,9 +5,8 @@ import pickle
 
 from baselines.her.util import convert_episode_to_batch_major, store_args
 from ipdb import set_trace
+from baselines.her.mirror_learning_method import mirror_learning, BOOL_SYM
 
-SYM_PLANE_Y = 0.48 * 2
-BOOL_SYM = True
 class RolloutWorker:
 
     @store_args
@@ -43,6 +42,7 @@ class RolloutWorker:
         self.n_episodes = 0
         self.reset_all_rollouts()
         self.clear_history()
+        self.mirror = mirror_learning()
 
     def reset_all_rollouts(self):
         self.obs_dict = self.venv.reset()
@@ -68,8 +68,10 @@ class RolloutWorker:
         dones = []
         info_values = [np.empty((self.T - 1, self.rollout_batch_size, self.dims['info_' + key]), np.float32) for key in self.info_keys]
         Qs = []
-        # ------------------symmetry-------------------------
+        # ------------------mirror-------------------------
+        # one episode list variable
         s_obs, s_achieved_goals, s_acts, s_goals = [], [], [], []
+        # s_info_values is not used, because this value not changed with symmetric
         s_info_values = [np.empty((self.T - 1, self.rollout_batch_size, self.dims['info_' + key]), np.float32) for key in self.info_keys]
         # ----------------end---------------------------
         for t in range(self.T):
@@ -94,6 +96,7 @@ class RolloutWorker:
             ag_new = np.empty((self.rollout_batch_size, self.dims['g']))
             success = np.zeros(self.rollout_batch_size)
             # compute new states and observations, do not return the reward, and get it from her_sampler.py
+            # set_trace()
             obs_dict_new, _, done, info = self.venv.step(u)
             # set_trace()
             o_new = obs_dict_new['observation']
@@ -123,11 +126,11 @@ class RolloutWorker:
             acts.append(u.copy())
             goals.append(self.g.copy())
 
-            # ----------------symmetry---------------------------
-            s_obs.append(self.sym_plane_compute(o.copy()))
-            s_achieved_goals.append(self.sym_plane_compute(ag.copy()))
-            s_acts.append(self.sym_plane_compute(u.copy()))
-            s_goals.append(self.sym_plane_compute(self.g.copy()))
+            # ----------------mirror---------------------------
+            s_obs.append(self.mirror.y_mirror(o.copy()))
+            s_achieved_goals.append(self.mirror.y_mirror(ag.copy()))
+            s_acts.append(self.mirror.y_mirror(u.copy()))
+            s_goals.append(self.mirror.y_mirror(self.g.copy()))
             # ----------------end---------------------------
 
             o[...] = o_new
@@ -136,9 +139,10 @@ class RolloutWorker:
         obs.append(o.copy())
         achieved_goals.append(ag.copy())
 
-        # ----------------symmetry---------------------------
-        s_obs.append(self.sym_plane_compute(o.copy()))
-        s_achieved_goals.append(self.sym_plane_compute(ag.copy()))
+        # ----------------mirror---------------------------
+        # terminal state
+        s_obs.append(self.mirror.y_mirror(o.copy()))
+        s_achieved_goals.append(self.mirror.y_mirror(ag.copy()))
         # ----------------end---------------------------
 
 
@@ -150,7 +154,8 @@ class RolloutWorker:
             episode['info_{}'.format(key)] = value
 
 
-        # ----------------symmetry---------------------------
+        # ----------------mirror---------------------------
+        # use dict to pack up s,a,s'
         s_episode = dict(o=s_obs,
                        u=s_acts,
                        g=s_goals,
@@ -167,7 +172,7 @@ class RolloutWorker:
         if self.compute_Q:
             self.Q_history.append(np.mean(Qs))
 
-        # -------symmetry-------: original one no need to *2
+        # -------mirror-------: original one no need to *2
         if BOOL_SYM:
             mul_factor = 2
         else:
@@ -189,54 +194,7 @@ class RolloutWorker:
         # set_trace()
         return episode_batch
 
-    def sym_plane_compute(self,param):
-        param_len = len(param[0])
-        if param_len == 3:    #goal & achieved goal
-            param[0][1] = SYM_PLANE_Y - param[0][1]
 
-        elif param_len == 4:  #action
-            param[0][1] = SYM_PLANE_Y - param[0][1]
-
-        elif param_len == 10:     # observation without object
-            param[0][1] = SYM_PLANE_Y - param[0][1]
-            # vel do not need SYM_PLANE_Y
-            param[0][4] = -param[0][4]
-            
-        elif param_len == 25:     # observation with object
-
-            # sym_grip_pos
-            param[0][1] = SYM_PLANE_Y - param[0][1]
-            # sym_obj_pos
-            param[0][4] = SYM_PLANE_Y - param[0][4]
-
-            # sym_obj_rel_pos
-            param[0][6] = param[0][3]-param[0][0]
-            param[0][7] = param[0][4]-param[0][1]
-            param[0][8] = param[0][5]-param[0][2]
-
-            # sym_obj_rot_euler
-            param[0][11] = -param[0][11]
-            param[0][13] = -param[0][13]
-
-            # get the original obj_velp first
-            param[0][14] += param[0][20]
-            param[0][15] += param[0][21]
-            param[0][16] += param[0][22]
-            # get the sym_obj_velp & sym_grip_velp
-            param[0][15] = -param[0][15]
-            param[0][21] = -param[0][21]
-            # get the sym_obj_rel_velp
-            param[0][14] -= param[0][20]
-            param[0][15] -= param[0][21]
-            param[0][16] -= param[0][22]
-
-            # sym_obj_velr
-            param[0][17] = -param[0][17]
-            param[0][19] = -param[0][19]
-
-
-        
-        return param.copy()
 
 
     def clear_history(self):

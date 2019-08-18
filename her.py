@@ -10,7 +10,7 @@ from baselines.common import set_global_seeds, tf_util
 from baselines.common.mpi_moments import mpi_moments
 import baselines.her.experiment.config as config
 from baselines.her.rollout import RolloutWorker
-from baselines.her.rollout import BOOL_SYM
+from baselines.her.mirror_learning_method import BOOL_SYM
 from ipdb import set_trace
 from tensorboardX import SummaryWriter
 writer = SummaryWriter()
