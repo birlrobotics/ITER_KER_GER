@@ -187,7 +187,7 @@ class RolloutWorker:
 
         # -------mirror-------: original one no need to *2
         if BOOL_SYM:
-            mul_factor = 2
+            mul_factor = 1
         else:
             mul_factor = 1
         self.n_episodes += (mul_factor* self.rollout_batch_size)
