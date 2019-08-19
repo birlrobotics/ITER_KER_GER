@@ -56,6 +56,9 @@ class RolloutWorker:
         """
         self.reset_all_rollouts()
 
+        episodes = []
+        episodes_batch = []
+
         # compute observations
         o = np.empty((self.rollout_batch_size, self.dims['o']), np.float32)  # observations
         ag = np.empty((self.rollout_batch_size, self.dims['g']), np.float32)  # achieved goals
@@ -67,12 +70,12 @@ class RolloutWorker:
         dones = []
         info_values = [np.empty((self.T - 1, self.rollout_batch_size, self.dims['info_' + key]), np.float32) for key in self.info_keys]
         Qs = []
-        # ------------------mirror-------------------------
-        # one episode list variable
-        s_obs, s_achieved_goals, s_acts, s_goals = [], [], [], []
-        # s_info_values is not used, because this value not changed with symmetric
-        s_info_values = [np.empty((self.T - 1, self.rollout_batch_size, self.dims['info_' + key]), np.float32) for key in self.info_keys]
-        # ----------------end---------------------------
+        # # ------------------mirror-------------------------
+        # # one episode list variable
+        # s_obs, s_achieved_goals, s_acts, s_goals = [], [], [], []
+        # # s_info_values is not used, because this value not changed with symmetric
+        # s_info_values = [np.empty((self.T - 1, self.rollout_batch_size, self.dims['info_' + key]), np.float32) for key in self.info_keys]
+        # # ----------------end---------------------------
         for t in range(self.T):
             policy_output = self.policy.get_actions(
                 o, ag, self.g,
@@ -123,19 +126,19 @@ class RolloutWorker:
             acts.append(u.copy())
             goals.append(self.g.copy())
 
-            # ----------------y_mirror---------------------------
+            # # ----------------y_mirror---------------------------
             # s_obs.append(self.mirror.y_mirror(o.copy()))
             # s_achieved_goals.append(self.mirror.y_mirror(ag.copy()))
             # s_acts.append(self.mirror.y_mirror(u.copy()))
             # s_goals.append(self.mirror.y_mirror(self.g.copy()))
-            # ----------------end---------------------------
+            # # ----------------end---------------------------
 
-            # ----------------kaleidoscope_robot---------------------------
-            s_obs.append(self.mirror.kaleidoscope_robot(o.copy()))
-            s_achieved_goals.append(self.mirror.kaleidoscope_robot(ag.copy()))
-            s_acts.append(self.mirror.kaleidoscope_robot(u.copy()))
-            s_goals.append(self.mirror.kaleidoscope_robot(self.g.copy()))
-            # ----------------end---------------------------
+            # # ----------------kaleidoscope_robot---------------------------
+            # s_obs.append(self.mirror.kaleidoscope_robot(o.copy()))
+            # s_achieved_goals.append(self.mirror.kaleidoscope_robot(ag.copy()))
+            # s_acts.append(self.mirror.kaleidoscope_robot(u.copy()))
+            # s_goals.append(self.mirror.kaleidoscope_robot(self.g.copy()))
+            # # ----------------end---------------------------
 
             o[...] = o_new
             ag[...] = ag_new
@@ -149,29 +152,37 @@ class RolloutWorker:
         # s_achieved_goals.append(self.mirror.y_mirror(ag.copy()))
         # # ----------------end---------------------------
 
-        # ----------------kaleidoscope_robot---------------------------
+        # # ----------------kaleidoscope_robot---------------------------
         # terminal state
-        s_obs.append(self.mirror.kaleidoscope_robot(o.copy()))
-        s_achieved_goals.append(self.mirror.kaleidoscope_robot(ag.copy()))
+        # s_obs.append(self.mirror.kaleidoscope_robot(o.copy()))
+        # s_achieved_goals.append(self.mirror.kaleidoscope_robot(ag.copy()))
+        # # ----------------end---------------------------
+
+        # ----------------pack up as transition--------------------------- 
+        original_ka_episodes = self.mirror.mirror_process(obs,acts,goals,achieved_goals)
+
+        for (obs,acts,goals,achieved_goals) in original_ka_episodes:
+            episode = dict(o=obs,
+                        u=acts,
+                        g=goals,
+                        ag=achieved_goals)
+            for key, value in zip(self.info_keys, info_values):
+                episode['info_{}'.format(key)] = value
+            episodes.append(episode)
+            # set_trace()
         # ----------------end---------------------------
 
-        episode = dict(o=obs,
-                       u=acts,
-                       g=goals,
-                       ag=achieved_goals)
-        for key, value in zip(self.info_keys, info_values):
-            episode['info_{}'.format(key)] = value
 
+        # # ----------------mirror---------------------------
+        # # use dict to pack up s,a,s'
+        # s_episode = dict(o=s_obs,
+        #                u=s_acts,
+        #                g=s_goals,
+        #                ag=s_achieved_goals)
+        # for key, value in zip(self.info_keys, info_values):
+        #     s_episode['info_{}'.format(key)] = value
+        # # ----------------end---------------------------
 
-        # ----------------mirror---------------------------
-        # use dict to pack up s,a,s'
-        s_episode = dict(o=s_obs,
-                       u=s_acts,
-                       g=s_goals,
-                       ag=s_achieved_goals)
-        for key, value in zip(self.info_keys, info_values):
-            s_episode['info_{}'.format(key)] = value
-        # ----------------end---------------------------
 
         # stats
         successful = np.array(successes)[-1, :]
@@ -181,7 +192,7 @@ class RolloutWorker:
         if self.compute_Q:
             self.Q_history.append(np.mean(Qs))
 
-        # -------mirror-------: original one no need to *2
+        # -------mirror-------: no modification
         if BOOL_SYM:
             mul_factor = 1
         else:
@@ -189,18 +200,24 @@ class RolloutWorker:
         self.n_episodes += (mul_factor* self.rollout_batch_size)
         # ----------------end---------------------------
 
-
+        # ----------------pack up as transition---------------------------
         # return dict: ['o', 'u', 'g', 'ag', 'info_is_success']
-        episode_batch = convert_episode_to_batch_major(episode)
-
-
-        # ----------------symmetry---------------------------
-        if BOOL_SYM:
-            s_episode_batch = convert_episode_to_batch_major(s_episode)
-            return episode_batch, s_episode_batch
+        for episode in episodes:
+            episode_batch = convert_episode_to_batch_major(episode)
+            episodes_batch.append(episode_batch)
         # ----------------end---------------------------
 
-        return episode_batch
+        # # ----------------mirror---------------------------
+        # if BOOL_SYM:
+        #     s_episode_batch = convert_episode_to_batch_major(s_episode)
+        #     return episode_batch, s_episode_batch
+        # # ----------------end---------------------------
+
+        if BOOL_SYM:
+            # set_trace()
+            return episodes_batch
+        else :
+            return episodes_batch[0]
 
     def mirror_learning_type(self):
         pass

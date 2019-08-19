@@ -4,9 +4,14 @@ from numpy.linalg import inv
 from ipdb import set_trace
 import math
 
+PI = math.pi
 BOOL_SYM = True
-Z_ZHETA = math.pi/5
+# Z_ZHETA = math.pi/5
 SYM_PLANE_Y = 0.48 * 2
+Z_TEHTA_SET = [PI/5, PI/9, PI/7]
+COUNT_UNVALID_OBJ = True
+unvalid_episode = False
+
 class mirror_learning:
     def __init__(self):
         pass
@@ -18,7 +23,7 @@ class mirror_learning:
         self.sym_plane_compute(param,'x_axis','y_mirror')
 
 
-    def kaleidoscope_robot(self, param, sym_axis = 'y_axis', sym_method = 'y_mirror'):
+    def kaleidoscope_robot(self, param, z_theta, sym_axis = 'y_axis', sym_method = 'y_mirror'):
         if sym_axis == 'y_axis':
             # in linear variable, plus i; in angular variable, minus i
             i = 0
@@ -31,7 +36,7 @@ class mirror_learning:
             SYM_PLANE = SYM_PLANE_X
 
         # compute the rotation transformation & its inverse.
-        theta = np.array([0,0,Z_ZHETA])
+        theta = np.array([0,0,z_theta])
         rot_z_theta = r_tool.euler2mat(theta)
         inv_rot_z_theta = inv(rot_z_theta)
 
@@ -65,7 +70,6 @@ class mirror_learning:
             v_l_a = param[0][3:6]
             s_v_l_a = self.linear_vector_symmetric_with_rot_plane(True, v_l_a, rot_z_theta, inv_rot_z_theta, i, SYM_PLANE)
             param[0][3:6] =  s_v_l_a
-            
 
             # sym_obj_rel_pos
             param[0][6] = param[0][3]-param[0][0]
@@ -92,8 +96,8 @@ class mirror_learning:
             theta_a = param[0][17:20]
             param[0][17:20] = self.orientation_mat_symmetric_with_rot_plane(theta_a, rot_z_theta, inv_rot_z_theta, i)
         
-
         return param.copy()
+
 
     def linear_vector_symmetric_with_rot_plane(self,if_pos, v_l_a, rot_z_theta, inv_rot_z_theta, i, SYM_PLANE):
         # Point 'a' position = v_l_a
@@ -107,6 +111,7 @@ class mirror_learning:
 
         s_v_l_a =  np.matmul(v_l_a_hat,inv_rot_z_theta)
         return s_v_l_a.copy()
+
 
     def orientation_mat_symmetric_with_rot_plane(self, theta_a, rot_z_theta, inv_rot_z_theta, i):
         # Point 'a' orientation euler angle = theta_a
@@ -190,4 +195,92 @@ class mirror_learning:
             param[0][17-i] = -param[0][17-i]
             param[0][19] = -param[0][19]
         return param.copy()
+
+
+    def mirror_process(self,obs,acts,goals,achieved_goals):
+        original_ka_episodes = []
+
+        y_goals = []
+        y_obs = []
+        y_acts = []
+        y_achieved_goals = []
+
+        # -----------------original data --------------
+        original_ka_episodes.append([obs,acts,goals,achieved_goals])
+
+        # -----------------original data symmetry with y mirror--------------
+        for goal in goals:
+            y_goal = self.y_mirror(goal.copy())
+            y_goals.append(y_goal.copy())
+
+        for ob in obs:
+            y_ob = self.y_mirror(ob.copy())
+            y_obs.append(y_ob.copy())
+
+        for act in acts:
+            y_act = self.y_mirror(act.copy())
+            y_acts.append(y_act.copy())
+
+        for achieved_goal in achieved_goals:
+            y_achieved_goal = self.y_mirror(achieved_goal.copy())
+            y_achieved_goals.append(y_achieved_goal.copy())
+
+        original_ka_episodes.append([y_obs, y_acts, y_goals, y_achieved_goals])
+
+        # -----------------original data symmetry with rotated mirror--------------
+        for z_theta in Z_TEHTA_SET:
+            s_goals = []
+            s_obs = []
+            s_acts = []
+            s_achieved_goals = []
+
+            y_goals = []
+            y_obs = []
+            y_acts = []
+            y_achieved_goals = []
+
+            for goal in goals:
+                s_goal = self.kaleidoscope_robot(goal.copy(),z_theta)
+                s_goals.append(s_goal.copy())
+                #if COUNT_UNVALID_OBJ == False:
+                    #if s_goal > ???:
+                        #unvalid_episode = True
+                        #break
+
+                y_goal = self.y_mirror(s_goal.copy())
+                y_goals.append(y_goal.copy())
+
+            #if unvalid_episode:
+                 #unvalid_episode = False
+                 #break
+
+            for ob in obs:
+                s_ob = self.kaleidoscope_robot(ob.copy(),z_theta)
+                s_obs.append(s_ob.copy())
+                y_ob = self.y_mirror(s_ob.copy())
+                y_obs.append(y_ob.copy())
+
+            for act in acts:
+                s_act = self.kaleidoscope_robot(act.copy(),z_theta)
+                s_acts.append(s_act.copy())
+                y_act = self.y_mirror(s_act.copy())
+                y_acts.append(y_act.copy())
+
+            for achieved_goal in achieved_goals:
+                s_achieved_goal = self.kaleidoscope_robot(achieved_goal.copy(),z_theta)
+                s_achieved_goals.append(s_achieved_goal.copy())
+                y_achieved_goal = self.y_mirror(s_achieved_goal.copy())
+                y_achieved_goals.append(y_achieved_goal.copy())
+
+            original_ka_episodes.append([s_obs, s_acts, s_goals, s_achieved_goals])
+            original_ka_episodes.append([y_obs, y_acts, y_goals, y_achieved_goals])
+
+        # set_trace()
+        return original_ka_episodes
+
+
+
+
+
+
 

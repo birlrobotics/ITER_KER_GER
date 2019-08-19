@@ -44,15 +44,24 @@ def train(*, policy, rollout_worker, evaluator,
         # train
         rollout_worker.clear_history()
         for _ in range(n_cycles):
-            # ---------symmetry------
+            # # ---------symmetry------
+            # if BOOL_SYM:
+            #     episode,s_episode = rollout_worker.generate_rollouts()
+            #     policy.store_episode(episode)
+            #     policy.store_episode(s_episode)
+            # else:
+            #     episode = rollout_worker.generate_rollouts()
+            #     policy.store_episode(episode)
+            # # ---------end------
+
+            episodes = rollout_worker.generate_rollouts()
             if BOOL_SYM:
-                episode,s_episode = rollout_worker.generate_rollouts()
-                policy.store_episode(episode)
-                policy.store_episode(s_episode)
+                # set_trace()
+                for episode in episodes:
+                    policy.store_episode(episode)
             else:
-                episode = rollout_worker.generate_rollouts()
-                policy.store_episode(episode)
-            # ---------end------
+                policy.store_episode(episodes)
+
 
             for _ in range(n_batches):
                 policy.train()
