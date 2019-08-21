@@ -7,14 +7,23 @@ import math
 PI = math.pi
 BOOL_SYM = True
 # Z_ZHETA = math.pi/5
-SYM_PLANE_Y = 0.48 * 2
-Z_TEHTA_SET = [PI/5, PI/9, PI/7]
+SYM_PLANE_Y = 0.75 * 2
+N_RSYM = 4
+MAX_Z_THETA_PICK_PUSH = 0.1443
+MAX_Z_THETA_SLIDE = 0.0697
+# Z_TEHTA_SET = [PI/5, PI/9, PI/7]
 COUNT_UNVALID_OBJ = True
 unvalid_episode = False
 
 class mirror_learning:
-    def __init__(self):
-        pass
+    def __init__(self,env_type):
+        self.env_type = env_type
+        self.n_rsym = N_RSYM
+        if (self.env_type == 'FetchPickAndPlace-v1') or (self.env_type == 'FetchPush-v1' ) :
+            self.max_z_theta= MAX_Z_THETA_PICK_PUSH
+        elif  self.env_type == 'FetchSlide-v1' :
+            self.max_z_theta = MAX_Z_THETA_SLIDE
+        
 
     def y_mirror(self,param):
         return self.sym_plane_compute(param,'y_axis','y_mirror')
@@ -24,6 +33,10 @@ class mirror_learning:
 
 
     def kaleidoscope_robot(self, param, z_theta, sym_axis = 'y_axis', sym_method = 'y_mirror'):
+        
+
+
+
         if sym_axis == 'y_axis':
             # in linear variable, plus i; in angular variable, minus i
             i = 0
@@ -198,85 +211,82 @@ class mirror_learning:
 
 
     def mirror_process(self,obs,acts,goals,achieved_goals):
-        original_ka_episodes = []
 
-        y_goals = []
-        y_obs = []
-        y_acts = []
-        y_achieved_goals = []
 
-        # -----------------original data --------------
-        original_ka_episodes.append([obs,acts,goals,achieved_goals])
+        # ---------------------------recursive symmetry------------------------------------------------
+        ka_episodes_set=[]
+        ka_episodes_set.append([obs,acts,goals,achieved_goals])
+        z_theta_set = []
 
-        # -----------------original data symmetry with y mirror--------------
-        for goal in goals:
-            y_goal = self.y_mirror(goal.copy())
-            y_goals.append(y_goal.copy())
+        self.compute_sym_number(goals[0][0])
 
-        for ob in obs:
-            y_ob = self.y_mirror(ob.copy())
-            y_obs.append(y_ob.copy())
+        # One symmetry will be done in the y mirror, so here n_rsym need to minus 1 
+        for i in range(self.n_rsym-1):
+            z_theta = np.random.uniform(0, self.max_z_theta)
+            z_theta_set.append(z_theta)
+            
+        for z_theta in z_theta_set:
+            ka_episodes_tem = []
+            for [o_obs, o_acts, o_goals, o_achieved_goals] in ka_episodes_set:
+                s_goals = []
+                s_obs = []
+                s_acts = []
+                s_achieved_goals = []
+                for goal in o_goals:
+                    s_goal = self.kaleidoscope_robot(goal.copy(),z_theta)
+                    s_goals.append(s_goal.copy())
 
-        for act in acts:
-            y_act = self.y_mirror(act.copy())
-            y_acts.append(y_act.copy())
+                for ob in o_obs:
+                    s_ob = self.kaleidoscope_robot(ob.copy(),z_theta)
+                    s_obs.append(s_ob.copy())
 
-        for achieved_goal in achieved_goals:
-            y_achieved_goal = self.y_mirror(achieved_goal.copy())
-            y_achieved_goals.append(y_achieved_goal.copy())
+                for act in o_acts:
+                    s_act = self.kaleidoscope_robot(act.copy(),z_theta)
+                    s_acts.append(s_act.copy())
 
-        original_ka_episodes.append([y_obs, y_acts, y_goals, y_achieved_goals])
+                for achieved_goal in o_achieved_goals:
+                    s_achieved_goal = self.kaleidoscope_robot(achieved_goal.copy(),z_theta)
+                    s_achieved_goals.append(s_achieved_goal.copy())
 
-        # -----------------original data symmetry with rotated mirror--------------
-        for z_theta in Z_TEHTA_SET:
-            s_goals = []
-            s_obs = []
-            s_acts = []
-            s_achieved_goals = []
+                ka_episodes_tem.append([s_obs, s_acts, s_goals, s_achieved_goals])
+            # set_trace()
+            for ka_episode in ka_episodes_tem:
+                ka_episodes_set.append(ka_episode)
+        # ---------------------------end
 
+        #--------------- All datas are symmetrized with y axis.
+        ymirror_episode_set = []
+        for [o_obs, o_acts, o_goals, o_achieved_goals] in ka_episodes_set:
             y_goals = []
             y_obs = []
             y_acts = []
             y_achieved_goals = []
-
-            for goal in goals:
-                s_goal = self.kaleidoscope_robot(goal.copy(),z_theta)
-                s_goals.append(s_goal.copy())
-                #if COUNT_UNVALID_OBJ == False:
-                    #if s_goal > ???:
-                        #unvalid_episode = True
-                        #break
-
-                y_goal = self.y_mirror(s_goal.copy())
+            for goal in o_goals:
+                y_goal = self.y_mirror(goal.copy())
                 y_goals.append(y_goal.copy())
 
-            #if unvalid_episode:
-                 #unvalid_episode = False
-                 #break
-
-            for ob in obs:
-                s_ob = self.kaleidoscope_robot(ob.copy(),z_theta)
-                s_obs.append(s_ob.copy())
-                y_ob = self.y_mirror(s_ob.copy())
+            for ob in o_obs:
+                y_ob = self.y_mirror(ob.copy())
                 y_obs.append(y_ob.copy())
 
-            for act in acts:
-                s_act = self.kaleidoscope_robot(act.copy(),z_theta)
-                s_acts.append(s_act.copy())
-                y_act = self.y_mirror(s_act.copy())
+            for act in o_acts:
+                y_act = self.y_mirror(act.copy())
                 y_acts.append(y_act.copy())
 
-            for achieved_goal in achieved_goals:
-                s_achieved_goal = self.kaleidoscope_robot(achieved_goal.copy(),z_theta)
-                s_achieved_goals.append(s_achieved_goal.copy())
-                y_achieved_goal = self.y_mirror(s_achieved_goal.copy())
+            for achieved_goal in o_achieved_goals:
+                y_achieved_goal = self.y_mirror(achieved_goal.copy())
                 y_achieved_goals.append(y_achieved_goal.copy())
+            ymirror_episode_set.append([y_obs, y_acts, y_goals, y_achieved_goals])
+        for ymirror_episode in ymirror_episode_set:
+            ka_episodes_set.append(ymirror_episode)
 
-            original_ka_episodes.append([s_obs, s_acts, s_goals, s_achieved_goals])
-            original_ka_episodes.append([y_obs, y_acts, y_goals, y_achieved_goals])
+        set_trace()
+        return ka_episodes_set
+        #--------------- end.
 
-        # set_trace()
-        return original_ka_episodes
+    def compute_sym_number(self,goal):
+        self.n_rsym = N_RSYM
+        
 
 
 

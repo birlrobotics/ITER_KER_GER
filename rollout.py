@@ -10,7 +10,7 @@ from baselines.her.mirror_learning_method import mirror_learning, BOOL_SYM
 class RolloutWorker:
 
     @store_args
-    def __init__(self, venv, policy, dims, logger, T, rollout_batch_size=1,
+    def __init__(self,env_name, venv, policy, dims, logger, T, rollout_batch_size=1,
                  exploit=False, use_target_net=False, compute_Q=False, noise_eps=0,
                  random_eps=0, history_len=100, render=False, monitor=False, **kwargs):
         """Rollout worker generates experience by interacting with one or many environments.
@@ -42,7 +42,7 @@ class RolloutWorker:
         self.n_episodes = 0
         self.reset_all_rollouts()
         self.clear_history()
-        self.mirror = mirror_learning()
+        self.mirror = mirror_learning(env_name)
 
     def reset_all_rollouts(self):
         self.obs_dict = self.venv.reset()
@@ -169,7 +169,6 @@ class RolloutWorker:
             for key, value in zip(self.info_keys, info_values):
                 episode['info_{}'.format(key)] = value
             episodes.append(episode)
-            # set_trace()
         # ----------------end---------------------------
 
 
@@ -214,7 +213,6 @@ class RolloutWorker:
         # # ----------------end---------------------------
 
         if BOOL_SYM:
-            # set_trace()
             return episodes_batch
         else :
             return episodes_batch[0]

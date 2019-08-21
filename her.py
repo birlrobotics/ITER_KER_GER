@@ -56,7 +56,6 @@ def train(*, policy, rollout_worker, evaluator,
 
             episodes = rollout_worker.generate_rollouts()
             if BOOL_SYM:
-                # set_trace()
                 for episode in episodes:
                     policy.store_episode(episode)
             else:
@@ -187,8 +186,8 @@ def learn(*, network, env, total_timesteps,
 
     eval_env = eval_env or env
 
-    rollout_worker = RolloutWorker(env, policy, dims, logger, monitor=True, **rollout_params)
-    evaluator = RolloutWorker(eval_env, policy, dims, logger, **eval_params)
+    rollout_worker = RolloutWorker(env_name, env, policy, dims, logger, monitor=True, **rollout_params)
+    evaluator = RolloutWorker(env_name,eval_env, policy, dims, logger, **eval_params)
 
     n_cycles = params['n_cycles']
     n_epochs = total_timesteps // n_cycles // rollout_worker.T // rollout_worker.rollout_batch_size
