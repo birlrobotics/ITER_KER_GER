@@ -249,7 +249,6 @@ class mirror_learning:
                     s_achieved_goals.append(s_achieved_goal.copy())
 
                 ka_episodes_tem.append([s_obs, s_acts, s_goals, s_achieved_goals])
-            # set_trace()
             for ka_episode in ka_episodes_tem:
                 ka_episodes_set.append(ka_episode)
         # ---------------------------end
@@ -280,7 +279,6 @@ class mirror_learning:
         for ymirror_episode in ymirror_episode_set:
             ka_episodes_set.append(ymirror_episode)
 
-        set_trace()
         return ka_episodes_set
         #--------------- end.
 
