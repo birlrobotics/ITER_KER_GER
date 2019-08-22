@@ -19,7 +19,7 @@ class mirror_learning:
     def __init__(self,env_type):
         self.env_type = env_type
         self.n_rsym = N_RSYM
-        if (self.env_type == 'FetchPickAndPlace-v1') or (self.env_type == 'FetchPush-v1' ) :
+        if (self.env_type == 'FetchPickAndPlace-v1') or (self.env_type == 'FetchPush-v1' )or (self.env_type == 'FetchReach-v1' ) :
             self.max_z_theta= MAX_Z_THETA_PICK_PUSH
         elif  self.env_type == 'FetchSlide-v1' :
             self.max_z_theta = MAX_Z_THETA_SLIDE

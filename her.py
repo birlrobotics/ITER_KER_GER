@@ -60,11 +60,12 @@ def train(*, policy, rollout_worker, evaluator,
                     policy.store_episode(episode)
             else:
                 policy.store_episode(episodes)
-
+            
 
             for _ in range(n_batches):
                 policy.train()
             policy.update_target_net()
+        policy.save(save_path)
 
         # test
         evaluator.clear_history()
@@ -86,15 +87,15 @@ def train(*, policy, rollout_worker, evaluator,
         # save the policy if it's better than the previous ones
         success_rate = mpi_average(evaluator.current_success_rate())
         writer.add_scalar(env_name+'_success_rate', success_rate, epoch)
-        if rank == 0 and success_rate >= best_success_rate and save_path:
-            best_success_rate = success_rate
-            logger.info('New best success rate: {}. Saving policy to {} ...'.format(best_success_rate, best_policy_path))
-            evaluator.save_policy(best_policy_path)
-            evaluator.save_policy(latest_policy_path)
-        if rank == 0 and policy_save_interval > 0 and epoch % policy_save_interval == 0 and save_path:
-            policy_path = periodic_policy_path.format(epoch)
-            logger.info('Saving periodic policy to {} ...'.format(policy_path))
-            evaluator.save_policy(policy_path)
+        # if rank == 0 and success_rate >= best_success_rate and save_path:
+        #     best_success_rate = success_rate
+        #     logger.info('New best success rate: {}. Saving policy to {} ...'.format(best_success_rate, best_policy_path))
+        #     evaluator.save_policy(best_policy_path)
+        #     evaluator.save_policy(latest_policy_path)
+        # if rank == 0 and policy_save_interval > 0 and epoch % policy_save_interval == 0 and save_path:
+        #     policy_path = periodic_policy_path.format(epoch)
+        #     logger.info('Saving periodic policy to {} ...'.format(policy_path))
+        #     evaluator.save_policy(policy_path)
 
         # make sure that different threads have different seeds
         local_uniform = np.random.uniform(size=(1,))
