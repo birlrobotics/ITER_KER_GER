@@ -79,6 +79,7 @@ def train(args, extra_args):
         seed=seed,
         total_timesteps=total_timesteps,
         save_path = args.save_path,
+        n_rsym = args.n_rsym,
         **alg_kwargs
     )
 
@@ -224,7 +225,6 @@ def main(args):
     else:
         rank = MPI.COMM_WORLD.Get_rank()
         configure_logger(args.log_path, format_strs=[])
-
     model, env = train(args, extra_args)
     if args.save_path is not None and rank == 0:
         save_path = osp.expanduser(args.save_path)

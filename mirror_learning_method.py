@@ -6,19 +6,16 @@ import math
 
 PI = math.pi
 BOOL_SYM = True
-# Z_ZHETA = math.pi/5
 SYM_PLANE_Y = 0.75 * 2
-N_RSYM = 4
 MAX_Z_THETA_PICK_PUSH = 0.1443
 MAX_Z_THETA_SLIDE = 0.0697
-# Z_TEHTA_SET = [PI/5, PI/9, PI/7]
 COUNT_UNVALID_OBJ = True
 unvalid_episode = False
 
 class mirror_learning:
-    def __init__(self,env_type):
+    def __init__(self,env_type,n_rsym):
         self.env_type = env_type
-        self.n_rsym = N_RSYM
+        self.n_rsym = n_rsym
         if (self.env_type == 'FetchPickAndPlace-v1') or (self.env_type == 'FetchPush-v1' )or (self.env_type == 'FetchReach-v1' ) :
             self.max_z_theta= MAX_Z_THETA_PICK_PUSH
         elif  self.env_type == 'FetchSlide-v1' :
@@ -218,7 +215,13 @@ class mirror_learning:
         ka_episodes_set.append([obs,acts,goals,achieved_goals])
         z_theta_set = []
 
-        self.compute_sym_number(goals[0][0])
+        # If self.n_rsym == None, means use vanillar her, or in test mode.
+        if self.n_rsym == None or self.n_rsym == 0:
+            return ka_episodes_set
+
+
+        # not finished yet
+        # self.compute_sym_number(goals[0][0])
 
         # One symmetry will be done in the y mirror, so here n_rsym need to minus 1 
         for i in range(self.n_rsym-1):
@@ -278,12 +281,11 @@ class mirror_learning:
             ymirror_episode_set.append([y_obs, y_acts, y_goals, y_achieved_goals])
         for ymirror_episode in ymirror_episode_set:
             ka_episodes_set.append(ymirror_episode)
-
         return ka_episodes_set
         #--------------- end.
 
-    def compute_sym_number(self,goal):
-        self.n_rsym = N_RSYM
+    # def compute_sym_number(self,goal):
+    #     self.n_rsym = N_RSYM
         
 
 

@@ -117,6 +117,7 @@ def learn(*, network, env, total_timesteps,
     override_params=None,
     load_path=None,
     save_path=None,
+    n_rsym = None,
     **kwargs
 ):
 
@@ -187,7 +188,7 @@ def learn(*, network, env, total_timesteps,
 
     eval_env = eval_env or env
 
-    rollout_worker = RolloutWorker(env_name, env, policy, dims, logger, monitor=True, **rollout_params)
+    rollout_worker = RolloutWorker(env_name, env, policy, dims, logger, monitor=True,n_rsym=n_rsym, **rollout_params)
     evaluator = RolloutWorker(env_name,eval_env, policy, dims, logger, **eval_params)
 
     n_cycles = params['n_cycles']
