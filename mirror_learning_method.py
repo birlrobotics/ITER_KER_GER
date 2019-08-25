@@ -16,6 +16,7 @@ class mirror_learning:
     def __init__(self,env_type,n_rsym):
         self.env_type = env_type
         self.n_rsym = n_rsym
+        self.sym_plane = None
         if (self.env_type == 'FetchPickAndPlace-v1') or (self.env_type == 'FetchPush-v1' )or (self.env_type == 'FetchReach-v1' ) :
             self.max_z_theta= MAX_Z_THETA_PICK_PUSH
         elif  self.env_type == 'FetchSlide-v1' :
@@ -31,9 +32,6 @@ class mirror_learning:
 
     def kaleidoscope_robot(self, param, z_theta, sym_axis = 'y_axis', sym_method = 'y_mirror'):
         
-
-
-
         if sym_axis == 'y_axis':
             # in linear variable, plus i; in angular variable, minus i
             i = 0
@@ -41,9 +39,9 @@ class mirror_learning:
             i = -1
 
         if sym_method == 'y_mirror':
-            SYM_PLANE = SYM_PLANE_Y
+            self.sym_plane = SYM_PLANE_Y
         elif sym_method == 'x_mirror':
-            SYM_PLANE = SYM_PLANE_X
+            self.sym_plane = SYM_PLANE_X
 
         # compute the rotation transformation & its inverse.
         theta = np.array([0,0,z_theta])
@@ -52,33 +50,36 @@ class mirror_learning:
 
         # Determine the input is which element
         param_len = len(param[0])
-        #goal & achieved goal or action
-        if param_len == 3 or param_len == 4:    
+        #goal & achieved goal  
+        if param_len == 3:    
             v_l_a = param[0][0:3]
-            s_v_l_a = self.linear_vector_symmetric_with_rot_plane(True, v_l_a, rot_z_theta, inv_rot_z_theta, i, SYM_PLANE)
+            s_v_l_a = self.linear_vector_symmetric_with_rot_plane(True, v_l_a, rot_z_theta, inv_rot_z_theta, i)
             param[0][0:3] =  s_v_l_a
 
-        # elif param_len == 4:  #action
+        elif param_len == 4:  #action
+            v_l_a = param[0][0:3]
+            s_v_l_a = self.linear_vector_symmetric_with_rot_plane(False, v_l_a, rot_z_theta, inv_rot_z_theta, i)
+            param[0][0:3] =  s_v_l_a
 
         elif param_len == 10:     # observation without object
             # grip pos
             v_l_a = param[0][0:3]
-            s_v_l_a = self.linear_vector_symmetric_with_rot_plane(True, v_l_a, rot_z_theta, inv_rot_z_theta, i, SYM_PLANE)
+            s_v_l_a = self.linear_vector_symmetric_with_rot_plane(True, v_l_a, rot_z_theta, inv_rot_z_theta, i)
             param[0][0:3] =  s_v_l_a
             # grip vel
             v_l_a = param[0][3:6]
-            s_v_l_a = self.linear_vector_symmetric_with_rot_plane(False, v_l_a, rot_z_theta, inv_rot_z_theta, i, SYM_PLANE)
+            s_v_l_a = self.linear_vector_symmetric_with_rot_plane(False, v_l_a, rot_z_theta, inv_rot_z_theta, i)
             param[0][3:6] =  s_v_l_a
             
         elif param_len == 25:     # observation with object
             # sym_grip_pos
             v_l_a = param[0][0:3]
-            s_v_l_a = self.linear_vector_symmetric_with_rot_plane(True, v_l_a, rot_z_theta, inv_rot_z_theta, i, SYM_PLANE)
+            s_v_l_a = self.linear_vector_symmetric_with_rot_plane(True, v_l_a, rot_z_theta, inv_rot_z_theta, i)
             param[0][0:3] =  s_v_l_a
 
             # sym_obj_pos
             v_l_a = param[0][3:6]
-            s_v_l_a = self.linear_vector_symmetric_with_rot_plane(True, v_l_a, rot_z_theta, inv_rot_z_theta, i, SYM_PLANE)
+            s_v_l_a = self.linear_vector_symmetric_with_rot_plane(True, v_l_a, rot_z_theta, inv_rot_z_theta, i)
             param[0][3:6] =  s_v_l_a
 
             # sym_obj_rel_pos
@@ -93,11 +94,11 @@ class mirror_learning:
             # get the obj real velp 
             v_l_a = param[0][14:17]+param[0][20:23]
             # get the sym obj real velp
-            s_v_l_a = self.linear_vector_symmetric_with_rot_plane(False, v_l_a, rot_z_theta, inv_rot_z_theta, i, SYM_PLANE)
+            s_v_l_a = self.linear_vector_symmetric_with_rot_plane(False, v_l_a, rot_z_theta, inv_rot_z_theta, i)
             param[0][14:17] =  s_v_l_a
             # get the sym grip real velp
             v_l_a = param[0][20:23]
-            s_v_l_a = self.linear_vector_symmetric_with_rot_plane(False, v_l_a, rot_z_theta, inv_rot_z_theta, i, SYM_PLANE)
+            s_v_l_a = self.linear_vector_symmetric_with_rot_plane(False, v_l_a, rot_z_theta, inv_rot_z_theta, i)
             param[0][20:23] =  s_v_l_a
             # get the sym obj relative velp 
             param[0][14:17] -= param[0][20:23]
@@ -109,13 +110,13 @@ class mirror_learning:
         return param.copy()
 
 
-    def linear_vector_symmetric_with_rot_plane(self,if_pos, v_l_a, rot_z_theta, inv_rot_z_theta, i, SYM_PLANE):
+    def linear_vector_symmetric_with_rot_plane(self,if_pos, v_l_a, rot_z_theta, inv_rot_z_theta, i):
         # Point 'a' position = v_l_a
 
         v_l_a_hat = np.matmul(v_l_a,rot_z_theta)
 
         if if_pos == True:
-            v_l_a_hat[1+i] = SYM_PLANE-v_l_a_hat[1+i]
+            v_l_a_hat[1+i] = self.sym_plane-v_l_a_hat[1+i]
         else:
             v_l_a_hat[1+i] = -v_l_a_hat[1+i]
 
@@ -161,31 +162,31 @@ class mirror_learning:
 
 
         if sym_method == 'y_mirror':
-            SYM_PLANE = SYM_PLANE_Y
+            self.sym_plane = SYM_PLANE_Y
         elif sym_method == 'x_mirror':
-            SYM_PLANE = SYM_PLANE_X
+            self.sym_plane = SYM_PLANE_X
         # elif sym_method == 'kaleidoscope_robot':
         #     SYM_PLANE = SYM_PLANE_Y
 
 
         param_len = len(param[0])
-        if param_len == 3 or param_len == 4:    #goal & achieved goal or action
-            param[0][1+i] = SYM_PLANE - param[0][1+i]
+        if param_len == 3:    #goal & achieved goal
+            param[0][1+i] = self.sym_plane - param[0][1+i]
 
-        # elif param_len == 4:  #action
-        #     param[0][1+i] = SYM_PLANE - param[0][1+i]
+        elif param_len == 4:  #action
+            param[0][1+i] = - param[0][1+i]
 
         elif param_len == 10:     # observation without object
-            param[0][1+i] = SYM_PLANE - param[0][1+i]
+            param[0][1+i] = self.sym_plane - param[0][1+i]
             # vel do not need SYM_PLANE
             param[0][4+i] = -param[0][4+i]
             
         elif param_len == 25:     # observation with object
 
             # sym_grip_pos
-            param[0][1+i] = SYM_PLANE - param[0][1+i]
+            param[0][1+i] = self.sym_plane - param[0][1+i]
             # sym_obj_pos
-            param[0][4+i] = SYM_PLANE - param[0][4+i]
+            param[0][4+i] = self.sym_plane - param[0][4+i]
 
             # sym_obj_rel_pos
             param[0][6] = param[0][3]-param[0][0]
