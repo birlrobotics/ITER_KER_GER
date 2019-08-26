@@ -11,6 +11,7 @@ MAX_Z_THETA_PICK_PUSH = 0.1443
 MAX_Z_THETA_SLIDE = 0.0697
 COUNT_UNVALID_OBJ = True
 unvalid_episode = False
+BOOL_OUTPUT_ONE_EPISODE_TRAJ = False # Generated one episode KER trajectories for plotting
 
 class mirror_learning:
     def __init__(self,env_type,n_rsym):
@@ -19,9 +20,12 @@ class mirror_learning:
         self.sym_plane = None
         if (self.env_type == 'FetchPickAndPlace-v1') or (self.env_type == 'FetchPush-v1' )or (self.env_type == 'FetchReach-v1' ) :
             self.max_z_theta= MAX_Z_THETA_PICK_PUSH
+            self.robot_base_x = 0.695
+            self.robot_base_y = 0.75
         elif  self.env_type == 'FetchSlide-v1' :
             self.max_z_theta = MAX_Z_THETA_SLIDE
-        
+            self.robot_base_x = 0.34
+            self.robot_base_y = 0.75
 
     def y_mirror(self,param):
         return self.sym_plane_compute(param,'y_axis','y_mirror')
@@ -46,8 +50,9 @@ class mirror_learning:
         # compute the rotation transformation & its inverse.
         theta = np.array([0,0,z_theta])
         rot_z_theta = r_tool.euler2mat(theta)
-        inv_rot_z_theta = inv(rot_z_theta)
 
+        inv_theta = np.array([0,0,-z_theta])
+        inv_rot_z_theta = r_tool.euler2mat(inv_theta)
         # Determine the input is which element
         param_len = len(param[0])
         #goal & achieved goal  
@@ -112,15 +117,15 @@ class mirror_learning:
 
     def linear_vector_symmetric_with_rot_plane(self,if_pos, v_l_a, rot_z_theta, inv_rot_z_theta, i):
         # Point 'a' position = v_l_a
-
-        v_l_a_hat = np.matmul(v_l_a,rot_z_theta)
-
         if if_pos == True:
-            v_l_a_hat[1+i] = self.sym_plane-v_l_a_hat[1+i]
-        else:
-            v_l_a_hat[1+i] = -v_l_a_hat[1+i]
-
-        s_v_l_a =  np.matmul(v_l_a_hat,inv_rot_z_theta)
+            v_l_a[0] -= self.robot_base_x
+            v_l_a[1] -= self.robot_base_y
+        v_l_a_hat = np.dot(inv_rot_z_theta,v_l_a)
+        v_l_a_hat[1+i] = -v_l_a_hat[1+i]
+        s_v_l_a =  np.dot(rot_z_theta,v_l_a_hat)
+        if if_pos == True:
+            s_v_l_a[0] += self.robot_base_x
+            s_v_l_a[1] += self.robot_base_y
         return s_v_l_a.copy()
 
 
@@ -218,6 +223,9 @@ class mirror_learning:
 
         # If self.n_rsym == None, means use vanillar her, or in test mode.
         if self.n_rsym == None or self.n_rsym == 0:
+            if BOOL_OUTPUT_ONE_EPISODE_TRAJ:
+                np.save(('/home/bourne/data_plot/all_n_rsym_trajs/sym_'+str(self.n_rsym)+'.npy'), ka_episodes_set)
+                set_trace()
             return ka_episodes_set
 
 
@@ -225,10 +233,17 @@ class mirror_learning:
         # self.compute_sym_number(goals[0][0])
 
         # One symmetry will be done in the y mirror, so here n_rsym need to minus 1 
-        for i in range(self.n_rsym-1):
+        for _ in range(self.n_rsym-1):
             z_theta = np.random.uniform(0, self.max_z_theta)
             z_theta_set.append(z_theta)
-            
+
+        if BOOL_OUTPUT_ONE_EPISODE_TRAJ:
+            #output the symmetric thetas for one step 
+            output_theta_set = z_theta_set.copy()
+            output_theta_set.append(0)
+            save_dir = '/home/bourne/data_plot/all_n_rsym_thetas/thetas_n_rsym_'+str(self.n_rsym)+'.npy'
+            np.save(save_dir, output_theta_set)
+
         for z_theta in z_theta_set:
             ka_episodes_tem = []
             for [o_obs, o_acts, o_goals, o_achieved_goals] in ka_episodes_set:
@@ -282,6 +297,12 @@ class mirror_learning:
             ymirror_episode_set.append([y_obs, y_acts, y_goals, y_achieved_goals])
         for ymirror_episode in ymirror_episode_set:
             ka_episodes_set.append(ymirror_episode)
+
+        # output the trajs for one step
+        if BOOL_OUTPUT_ONE_EPISODE_TRAJ:
+            np.save(('/home/bourne/data_plot/all_n_rsym_trajs/trajs_n_rsym_'+str(self.n_rsym)+'.npy'), ka_episodes_set)
+            set_trace()
+
         return ka_episodes_set
         #--------------- end.
 
