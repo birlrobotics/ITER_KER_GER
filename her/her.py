@@ -57,16 +57,17 @@ def train(*, policy, rollout_worker, evaluator,
             episodes = rollout_worker.generate_rollouts()
             if BOOL_SYM:
                 for episode in episodes:
-                    policy.store_episode(episode)
+                    policy.store_episode(episode,epoch)
             else:
-                policy.store_episode(episodes)
+                policy.store_episode(episodes,epoch)
             
 
             for _ in range(n_batches):
                 policy.train()
             policy.update_target_net()
+            
         policy.save(save_path)
-
+        
         # test
         evaluator.clear_history()
         for _ in range(n_test_rollouts):

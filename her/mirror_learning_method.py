@@ -13,6 +13,12 @@ COUNT_UNVALID_OBJ = True
 unvalid_episode = False
 BOOL_OUTPUT_ONE_EPISODE_TRAJ = False # Generated one episode KER trajectories for plotting
 
+# Delay Memory
+LOWER_MEMORY_BOUND = 15E3
+UPPER_EXTRACT_PROB_BOUND = 0.95
+INCREASE_RATE = 1.2
+START_EPOCH = 4
+
 class mirror_learning:
     def __init__(self,env_type,n_rsym):
         self.env_type = env_type
