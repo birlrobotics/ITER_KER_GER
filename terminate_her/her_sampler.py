@@ -28,15 +28,15 @@ def make_sample_her_transitions(replay_strategy, replay_k, reward_fun):
         t_samples = np.random.randint(T, size=batch_size)
         transitions = {key: episode_batch[key][episode_idxs, t_samples].copy()
                        for key in episode_batch.keys()}
-        
+
+        future = future_p
         if epoch_inx is not None:
-            
             if epoch_inx >= 75:
                 future = 0
 
         # Select future time indexes proportional with probability future_p. These
         # will be used for HER replay by substituting in future goals.
-        her_indexes = np.where(np.random.uniform(size=batch_size) < future_p)
+        her_indexes = np.where(np.random.uniform(size=batch_size) < future)
         future_offset = np.random.uniform(size=batch_size) * (T - t_samples)
         future_offset = future_offset.astype(int)
         future_t = (t_samples + 1 + future_offset)[her_indexes]
