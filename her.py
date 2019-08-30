@@ -63,7 +63,7 @@ def train(*, policy, rollout_worker, evaluator,
             
 
             for _ in range(n_batches):
-                policy.train()
+                policy.train(epoch_inx = epoch)
             policy.update_target_net()
         policy.save(save_path)
 
