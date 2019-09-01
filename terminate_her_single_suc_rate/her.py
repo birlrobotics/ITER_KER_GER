@@ -10,7 +10,7 @@ from baselines.common import set_global_seeds, tf_util
 from baselines.common.mpi_moments import mpi_moments
 import baselines.her.experiment.config as config
 from baselines.her.rollout import RolloutWorker
-from baselines.her.mirror_learning_method import BOOL_SYM
+from baselines.her.mirror_learning_method import BOOL_SYM,SINGLE_SUC_RATE_THRESHOLD,IF_CLEAR_BUFFER
 from ipdb import set_trace
 from tensorboardX import SummaryWriter
 writer = SummaryWriter()
@@ -40,42 +40,50 @@ def train(*, policy, rollout_worker, evaluator,
     if policy.bc_loss == 1: policy.init_demo_buffer(demo_file) #initialize demo buffer if training with demonstrations
 
     # num_timesteps = n_epochs * n_cycles * rollout_length * number of rollout workers
+    train_bool_sym  = BOOL_SYM
+    do_not_enter_twice = True
+    test_suc_rate = 0
+    single_suc_rate_threshold = SINGLE_SUC_RATE_THRESHOLD
     for epoch in range(n_epochs):
         # train
+        if single_suc_rate_threshold is not None:
+            # int(xxx*10) to get rid of the float
+            if (int(test_suc_rate*10) == int(single_suc_rate_threshold*10) ) and do_not_enter_twice:
+                set_trace()
+                do_not_enter_twice = False
+                train_bool_sym = False
+                if_clear_buffer = IF_CLEAR_BUFFER
+
         rollout_worker.clear_history()
         for _ in range(n_cycles):
-            # # ---------symmetry------
-            # if BOOL_SYM:
-            #     episode,s_episode = rollout_worker.generate_rollouts()
-            #     policy.store_episode(episode)
-            #     policy.store_episode(s_episode)
-            # else:
-            #     episode = rollout_worker.generate_rollouts()
-            #     policy.store_episode(episode)
-            # # ---------end------
 
-            episodes = rollout_worker.generate_rollouts()
-            if BOOL_SYM:
+            episodes = rollout_worker.generate_rollouts(train_bool_sym)
+            if train_bool_sym:
                 for episode in episodes:
                     policy.store_episode(episode)
             else:
-                policy.store_episode(episodes)
+                policy.store_episode(episodes,if_clear_buffer_first = if_clear_buffer)
+                if_clear_buffer = False
             
 
             for _ in range(n_batches):
-                policy.train(epoch_inx = epoch)
+                policy.train()
             policy.update_target_net()
         policy.save(save_path)
 
         # test
         evaluator.clear_history()
         for _ in range(n_test_rollouts):
-            evaluator.generate_rollouts()
+            evaluator.generate_rollouts(bool_sym=False)
 
         # record logs
         logger.record_tabular('epoch', epoch)
         for key, val in evaluator.logs('test'):
+            # test
+            
             logger.record_tabular(key, mpi_average(val))
+            if key == "test/success_rate":
+                test_suc_rate = val.copy()
         for key, val in rollout_worker.logs('train'):
             logger.record_tabular(key, mpi_average(val))
         for key, val in policy.logs():

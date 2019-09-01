@@ -6,6 +6,8 @@ import math
 
 PI = math.pi
 BOOL_SYM = True
+IF_CLEAR_BUFFER = False
+SINGLE_SUC_RATE_THRESHOLD = 1  # Set to none if donnot terminate KER
 SYM_PLANE_Y = 0.75 * 2
 MAX_Z_THETA_PICK_PUSH = 0.1443
 MAX_Z_THETA_SLIDE = 0.0697
