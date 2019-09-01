@@ -10,9 +10,11 @@ from baselines.common import set_global_seeds, tf_util
 from baselines.common.mpi_moments import mpi_moments
 import baselines.her.experiment.config as config
 from baselines.her.rollout import RolloutWorker
-from baselines.her.mirror_learning_method import BOOL_SYM
 from ipdb import set_trace
 from tensorboardX import SummaryWriter
+from baselines.her.mirror_learning_method import SINGLE_SUC_RATE_THRESHOLD,IF_CLEAR_BUFFER
+
+
 writer = SummaryWriter()
 
 
@@ -26,7 +28,7 @@ def mpi_average(value):
 
 def train(*, policy, rollout_worker, evaluator,
           n_epochs, n_test_rollouts, n_cycles, n_batches, policy_save_interval,
-          save_path, demo_file, env_name, **kwargs):
+          save_path, demo_file, env_name,n_rsym, **kwargs):
     rank = MPI.COMM_WORLD.Get_rank()
 
     if save_path:
@@ -40,28 +42,40 @@ def train(*, policy, rollout_worker, evaluator,
     if policy.bc_loss == 1: policy.init_demo_buffer(demo_file) #initialize demo buffer if training with demonstrations
 
     # num_timesteps = n_epochs * n_cycles * rollout_length * number of rollout workers
+
+    # prepare the param for training on KER
+    n_rsym_number = n_rsym
+    first_time_enter = True
+    test_suc_rate = 0
+    single_suc_rate_threshold = SINGLE_SUC_RATE_THRESHOLD
+    terminate_ker_now = False
+    if_clear_buffer = False
     for epoch in range(n_epochs):
         # train
+        
+        #Terminate KER during training or not 
+        if (single_suc_rate_threshold is not None) and (n_rsym_number !=0):
+            # int(xxx*10) to get rid of the float, and just enter once to terminate KER.
+            if (int(test_suc_rate*10) == int(single_suc_rate_threshold*10) ) and first_time_enter:
+                first_time_enter = False
+                if_clear_buffer = IF_CLEAR_BUFFER
+                terminate_ker_now = True
+
         rollout_worker.clear_history()
         for _ in range(n_cycles):
-            # # ---------symmetry------
-            # if BOOL_SYM:
-            #     episode,s_episode = rollout_worker.generate_rollouts()
-            #     policy.store_episode(episode)
-            #     policy.store_episode(s_episode)
-            # else:
-            #     episode = rollout_worker.generate_rollouts()
-            #     policy.store_episode(episode)
-            # # ---------end------
+            # generate episodes
+            episodes = rollout_worker.generate_rollouts(terminate_ker=terminate_ker_now)
 
-            episodes = rollout_worker.generate_rollouts()
-            if BOOL_SYM:
+            # with KER
+            if (n_rsym_number !=0) and terminate_ker_now==False:
                 for episode in episodes:
                     policy.store_episode(episode)
+            # without KER
             else:
-                policy.store_episode(episodes)
+                policy.store_episode(episodes,if_clear_buffer_first = if_clear_buffer)
+                # HER/DDPG do not need clear buffer
+                if_clear_buffer = False
             
-
             for _ in range(n_batches):
                 policy.train()
             policy.update_target_net()
@@ -76,6 +90,8 @@ def train(*, policy, rollout_worker, evaluator,
         logger.record_tabular('epoch', epoch)
         for key, val in evaluator.logs('test'):
             logger.record_tabular(key, mpi_average(val))
+            if key == "test/success_rate":
+                test_suc_rate = val.copy()
         for key, val in rollout_worker.logs('train'):
             logger.record_tabular(key, mpi_average(val))
         for key, val in policy.logs():
@@ -198,7 +214,7 @@ def learn(*, network, env, total_timesteps,
         save_path=save_path, policy=policy, rollout_worker=rollout_worker,
         evaluator=evaluator, n_epochs=n_epochs, n_test_rollouts=params['n_test_rollouts'],
         n_cycles=params['n_cycles'], n_batches=params['n_batches'],
-        policy_save_interval=policy_save_interval, demo_file=demo_file,env_name=env_name)
+        policy_save_interval=policy_save_interval, demo_file=demo_file,env_name=env_name, n_rsym = n_rsym)
 
 
 @click.command()

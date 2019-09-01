@@ -5,8 +5,12 @@ from ipdb import set_trace
 import math
 
 PI = math.pi
-BOOL_SYM = True
 SYM_PLANE_Y = 0.75 * 2
+
+IF_CLEAR_BUFFER = True
+SINGLE_SUC_RATE_THRESHOLD = 1  # Set to none if donnot terminate KER
+
+
 MAX_Z_THETA_PICK_PUSH = 0.1443
 MAX_Z_THETA_SLIDE = 0.0697
 COUNT_UNVALID_OBJ = True
