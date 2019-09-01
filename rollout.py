@@ -7,6 +7,7 @@ from baselines.her.util import convert_episode_to_batch_major, store_args
 from ipdb import set_trace
 from baselines.her.mirror_learning_method import mirror_learning, BOOL_SYM
 
+
 class RolloutWorker:
 
     @store_args
