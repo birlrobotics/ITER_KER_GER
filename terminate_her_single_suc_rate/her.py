@@ -80,7 +80,6 @@ def train(*, policy, rollout_worker, evaluator,
         logger.record_tabular('epoch', epoch)
         for key, val in evaluator.logs('test'):
             # test
-            
             logger.record_tabular(key, mpi_average(val))
             if key == "test/success_rate":
                 test_suc_rate = val.copy()

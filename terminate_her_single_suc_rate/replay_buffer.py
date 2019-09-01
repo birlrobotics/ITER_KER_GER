@@ -85,6 +85,9 @@ class ReplayBuffer:
     def clear_buffer(self):
         with self.lock:
             self.current_size = 0
+            self.n_transitions_stored = 0
+            self.buffers = {key: np.empty([self.size, *shape])
+                            for key, shape in self.buffer_shapes.items()}
 
     def _get_storage_idx(self, inc=None):
         inc = inc or 1   # size increment
