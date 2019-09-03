@@ -15,21 +15,25 @@ MAX_Z_THETA_PICK_PUSH = 0.1443
 MAX_Z_THETA_SLIDE = 0.0697
 COUNT_UNVALID_OBJ = True
 unvalid_episode = False
-BOOL_OUTPUT_ONE_EPISODE_TRAJ = False # Generated one episode KER trajectories for plotting
+BOOL_OUTPUT_ONE_EPISODE_TRAJ = True # Generated one episode KER trajectories for plotting
 
 class mirror_learning:
     def __init__(self,env_type,n_rsym):
         self.env_type = env_type
         self.n_rsym = n_rsym
         self.sym_plane = None
+        self.max_x_theta = 0.6491
         if (self.env_type == 'FetchPickAndPlace-v1') or (self.env_type == 'FetchPush-v1' )or (self.env_type == 'FetchReach-v1' ) :
             self.max_z_theta= MAX_Z_THETA_PICK_PUSH
             self.robot_base_x = 0.695
             self.robot_base_y = 0.75
+            self.robot_base_z = 0.4
         elif  self.env_type == 'FetchSlide-v1' :
             self.max_z_theta = MAX_Z_THETA_SLIDE
             self.robot_base_x = 0.34
             self.robot_base_y = 0.75
+            self.robot_base_z = 0.4
+
 
     def y_mirror(self,param):
         return self.sym_plane_compute(param,'y_axis','y_mirror')
@@ -38,7 +42,7 @@ class mirror_learning:
         self.sym_plane_compute(param,'x_axis','y_mirror')
 
 
-    def kaleidoscope_robot(self, param, z_theta, sym_axis = 'y_axis', sym_method = 'y_mirror'):
+    def kaleidoscope_robot(self, param, xyz_theta, sym_axis = 'y_axis', sym_method = 'y_mirror'):
         
         if sym_axis == 'y_axis':
             # in linear variable, plus i; in angular variable, minus i
@@ -52,43 +56,43 @@ class mirror_learning:
             self.sym_plane = SYM_PLANE_X
 
         # compute the rotation transformation & its inverse.
-        theta = np.array([0,0,z_theta])
-        rot_z_theta = r_tool.euler2mat(theta)
+        rot_xyz_theta = r_tool.euler2mat(xyz_theta)
+        
+        inv_rot_xyz_theta = np.mat(rot_xyz_theta).I.copy()
+        inv_rot_xyz_theta = np.array(inv_rot_xyz_theta)
 
-        inv_theta = np.array([0,0,-z_theta])
-        inv_rot_z_theta = r_tool.euler2mat(inv_theta)
         # Determine the input is which element
         param_len = len(param[0])
         #goal & achieved goal  
         if param_len == 3:    
             v_l_a = param[0][0:3]
-            s_v_l_a = self.linear_vector_symmetric_with_rot_plane(True, v_l_a, rot_z_theta, inv_rot_z_theta, i)
+            s_v_l_a = self.linear_vector_symmetric_with_rot_plane(True, v_l_a, rot_xyz_theta, inv_rot_xyz_theta, i)
             param[0][0:3] =  s_v_l_a
 
         elif param_len == 4:  #action
             v_l_a = param[0][0:3]
-            s_v_l_a = self.linear_vector_symmetric_with_rot_plane(False, v_l_a, rot_z_theta, inv_rot_z_theta, i)
+            s_v_l_a = self.linear_vector_symmetric_with_rot_plane(False, v_l_a, rot_xyz_theta, inv_rot_xyz_theta, i)
             param[0][0:3] =  s_v_l_a
 
         elif param_len == 10:     # observation without object
             # grip pos
             v_l_a = param[0][0:3]
-            s_v_l_a = self.linear_vector_symmetric_with_rot_plane(True, v_l_a, rot_z_theta, inv_rot_z_theta, i)
+            s_v_l_a = self.linear_vector_symmetric_with_rot_plane(True, v_l_a, rot_xyz_theta, inv_rot_xyz_theta, i)
             param[0][0:3] =  s_v_l_a
             # grip vel
             v_l_a = param[0][3:6]
-            s_v_l_a = self.linear_vector_symmetric_with_rot_plane(False, v_l_a, rot_z_theta, inv_rot_z_theta, i)
+            s_v_l_a = self.linear_vector_symmetric_with_rot_plane(False, v_l_a, rot_xyz_theta, inv_rot_xyz_theta, i)
             param[0][3:6] =  s_v_l_a
             
         elif param_len == 25:     # observation with object
             # sym_grip_pos
             v_l_a = param[0][0:3]
-            s_v_l_a = self.linear_vector_symmetric_with_rot_plane(True, v_l_a, rot_z_theta, inv_rot_z_theta, i)
+            s_v_l_a = self.linear_vector_symmetric_with_rot_plane(True, v_l_a, rot_xyz_theta, inv_rot_xyz_theta, i)
             param[0][0:3] =  s_v_l_a
 
             # sym_obj_pos
             v_l_a = param[0][3:6]
-            s_v_l_a = self.linear_vector_symmetric_with_rot_plane(True, v_l_a, rot_z_theta, inv_rot_z_theta, i)
+            s_v_l_a = self.linear_vector_symmetric_with_rot_plane(True, v_l_a, rot_xyz_theta, inv_rot_xyz_theta, i)
             param[0][3:6] =  s_v_l_a
 
             # sym_obj_rel_pos
@@ -98,47 +102,49 @@ class mirror_learning:
 
             # sym_obj_rot_euler
             theta_a = param[0][11:14]
-            param[0][11:14] = self.orientation_mat_symmetric_with_rot_plane(theta_a, rot_z_theta, inv_rot_z_theta, i)
+            param[0][11:14] = self.orientation_mat_symmetric_with_rot_plane(theta_a, rot_xyz_theta, inv_rot_xyz_theta, i)
             
             # get the obj real velp 
             v_l_a = param[0][14:17]+param[0][20:23]
             # get the sym obj real velp
-            s_v_l_a = self.linear_vector_symmetric_with_rot_plane(False, v_l_a, rot_z_theta, inv_rot_z_theta, i)
+            s_v_l_a = self.linear_vector_symmetric_with_rot_plane(False, v_l_a, rot_xyz_theta, inv_rot_xyz_theta, i)
             param[0][14:17] =  s_v_l_a
             # get the sym grip real velp
             v_l_a = param[0][20:23]
-            s_v_l_a = self.linear_vector_symmetric_with_rot_plane(False, v_l_a, rot_z_theta, inv_rot_z_theta, i)
+            s_v_l_a = self.linear_vector_symmetric_with_rot_plane(False, v_l_a, rot_xyz_theta, inv_rot_xyz_theta, i)
             param[0][20:23] =  s_v_l_a
             # get the sym obj relative velp 
             param[0][14:17] -= param[0][20:23]
 
             # sym_obj_velr
             theta_a = param[0][17:20]
-            param[0][17:20] = self.orientation_mat_symmetric_with_rot_plane(theta_a, rot_z_theta, inv_rot_z_theta, i)
+            param[0][17:20] = self.orientation_mat_symmetric_with_rot_plane(theta_a, rot_xyz_theta, inv_rot_xyz_theta, i)
         
         return param.copy()
 
 
-    def linear_vector_symmetric_with_rot_plane(self,if_pos, v_l_a, rot_z_theta, inv_rot_z_theta, i):
+    def linear_vector_symmetric_with_rot_plane(self,if_pos, v_l_a, rot_xyz_theta, inv_rot_xyz_theta, i):
         # Point 'a' position = v_l_a
         if if_pos == True:
             v_l_a[0] -= self.robot_base_x
             v_l_a[1] -= self.robot_base_y
-        v_l_a_hat = np.dot(inv_rot_z_theta,v_l_a)
+            v_l_a[2] -= self.robot_base_z
+        v_l_a_hat = np.dot(inv_rot_xyz_theta,v_l_a)
         v_l_a_hat[1+i] = -v_l_a_hat[1+i]
-        s_v_l_a =  np.dot(rot_z_theta,v_l_a_hat)
+        s_v_l_a =  np.dot(rot_xyz_theta,v_l_a_hat)
         if if_pos == True:
             s_v_l_a[0] += self.robot_base_x
             s_v_l_a[1] += self.robot_base_y
+            s_v_l_a[2] += self.robot_base_z
         return s_v_l_a.copy()
 
 
-    def orientation_mat_symmetric_with_rot_plane(self, theta_a, rot_z_theta, inv_rot_z_theta, i):
+    def orientation_mat_symmetric_with_rot_plane(self, theta_a, rot_xyz_theta, inv_rot_xyz_theta, i):
         # Point 'a' orientation euler angle = theta_a
         # euler to rot matrix for transform
         v_r_a = r_tool.euler2mat(theta_a)
         # transform to the O cordinate from S cordinate
-        v_r_a_hat = np.matmul(v_r_a,inv_rot_z_theta)
+        v_r_a_hat = np.matmul(v_r_a,inv_rot_xyz_theta)
 
         # Rot matrix to euler for sym
         v_r_a_hat = r_tool.mat2euler(v_r_a_hat)
@@ -149,7 +155,7 @@ class mirror_learning:
 
         # euler to rot matrix for transform 
         v_r_a_hat = r_tool.euler2mat(v_r_a_hat)
-        s_v_r_a = np.matmul(v_r_a_hat,rot_z_theta)
+        s_v_r_a = np.matmul(v_r_a_hat,rot_xyz_theta)
 
         # Rot matrix to euler for return
         s_v_r_a = r_tool.mat2euler(s_v_r_a)
@@ -223,12 +229,12 @@ class mirror_learning:
         # ---------------------------recursive symmetry------------------------------------------------
         ka_episodes_set=[]
         ka_episodes_set.append([obs,acts,goals,achieved_goals])
-        z_theta_set = []
+        xyz_theta_set = []
 
         # If self.n_rsym == None, means use vanillar her, or in test mode.
         if self.n_rsym == None or self.n_rsym == 0:
             if BOOL_OUTPUT_ONE_EPISODE_TRAJ:
-                np.save(('/home/bourne/data_plot/all_n_rsym_trajs/sym_'+str(self.n_rsym)+'.npy'), ka_episodes_set)
+                np.save(('/home/bourne/data_plot/visualized_plot_ker_traj/all_n_rsym_trajs/sym_'+str(self.n_rsym)+'.npy'), ka_episodes_set)
                 set_trace()
             return ka_episodes_set
 
@@ -238,17 +244,19 @@ class mirror_learning:
 
         # One symmetry will be done in the y mirror, so here n_rsym need to minus 1 
         for _ in range(self.n_rsym-1):
-            z_theta = np.random.uniform(0, self.max_z_theta)
-            z_theta_set.append(z_theta)
+            xyz_theta = np.random.uniform(0, self.max_z_theta,size =3)
+            xyz_theta[0] = np.random.uniform(0, self.max_x_theta)
+            
+            xyz_theta_set.append(xyz_theta)
 
-        if BOOL_OUTPUT_ONE_EPISODE_TRAJ:
-            #output the symmetric thetas for one step 
-            output_theta_set = z_theta_set.copy()
-            output_theta_set.append(0)
-            save_dir = '/home/bourne/data_plot/all_n_rsym_thetas/thetas_n_rsym_'+str(self.n_rsym)+'.npy'
-            np.save(save_dir, output_theta_set)
+        # if BOOL_OUTPUT_ONE_EPISODE_TRAJ:
+        #     #output the symmetric thetas for one step 
+        #     output_theta_set = xyz_theta_set.copy()
+        #     output_theta_set.append(np.array([0,0,0]))
+        #     save_dir = '/home/bourne/data_plot/visualized_plot_ker_traj/all_n_rsym_thetas/thetas_n_rsym_'+str(self.n_rsym)+'.npy'
+        #     np.save(save_dir, output_theta_set)
 
-        for z_theta in z_theta_set:
+        for xyz_theta in xyz_theta_set:
             ka_episodes_tem = []
             for [o_obs, o_acts, o_goals, o_achieved_goals] in ka_episodes_set:
                 s_goals = []
@@ -256,19 +264,19 @@ class mirror_learning:
                 s_acts = []
                 s_achieved_goals = []
                 for goal in o_goals:
-                    s_goal = self.kaleidoscope_robot(goal.copy(),z_theta)
+                    s_goal = self.kaleidoscope_robot(goal.copy(),xyz_theta)
                     s_goals.append(s_goal.copy())
 
                 for ob in o_obs:
-                    s_ob = self.kaleidoscope_robot(ob.copy(),z_theta)
+                    s_ob = self.kaleidoscope_robot(ob.copy(),xyz_theta)
                     s_obs.append(s_ob.copy())
 
                 for act in o_acts:
-                    s_act = self.kaleidoscope_robot(act.copy(),z_theta)
+                    s_act = self.kaleidoscope_robot(act.copy(),xyz_theta)
                     s_acts.append(s_act.copy())
 
                 for achieved_goal in o_achieved_goals:
-                    s_achieved_goal = self.kaleidoscope_robot(achieved_goal.copy(),z_theta)
+                    s_achieved_goal = self.kaleidoscope_robot(achieved_goal.copy(),xyz_theta)
                     s_achieved_goals.append(s_achieved_goal.copy())
 
                 ka_episodes_tem.append([s_obs, s_acts, s_goals, s_achieved_goals])
@@ -276,35 +284,73 @@ class mirror_learning:
                 ka_episodes_set.append(ka_episode)
         # ---------------------------end
 
-        #--------------- All datas are symmetrized with y axis.
+        # #--------------- All datas are symmetrized with y axis.
+        # ymirror_episode_set = []
+        # for [o_obs, o_acts, o_goals, o_achieved_goals] in ka_episodes_set:
+        #     y_goals = []
+        #     y_obs = []
+        #     y_acts = []
+        #     y_achieved_goals = []
+        #     for goal in o_goals:
+        #         y_goal = self.y_mirror(goal.copy())
+        #         y_goals.append(y_goal.copy())
+
+        #     for ob in o_obs:
+        #         y_ob = self.y_mirror(ob.copy())
+        #         y_obs.append(y_ob.copy())
+
+        #     for act in o_acts:
+        #         y_act = self.y_mirror(act.copy())
+        #         y_acts.append(y_act.copy())
+
+        #     for achieved_goal in o_achieved_goals:
+        #         y_achieved_goal = self.y_mirror(achieved_goal.copy())
+        #         y_achieved_goals.append(y_achieved_goal.copy())
+        #     ymirror_episode_set.append([y_obs, y_acts, y_goals, y_achieved_goals])
+        # for ymirror_episode in ymirror_episode_set:
+        #     ka_episodes_set.append(ymirror_episode)
+
+
+        #--------------- All datas are symmetrized with rotated x axis.
         ymirror_episode_set = []
+        xyz_theta = np.array([np.random.uniform(0, self.max_x_theta),0,0])
         for [o_obs, o_acts, o_goals, o_achieved_goals] in ka_episodes_set:
             y_goals = []
             y_obs = []
             y_acts = []
             y_achieved_goals = []
+            
+            
             for goal in o_goals:
-                y_goal = self.y_mirror(goal.copy())
+                y_goal = self.kaleidoscope_robot(goal.copy(),xyz_theta)
                 y_goals.append(y_goal.copy())
 
             for ob in o_obs:
-                y_ob = self.y_mirror(ob.copy())
+                y_ob = self.kaleidoscope_robot(ob.copy(),xyz_theta)
                 y_obs.append(y_ob.copy())
 
             for act in o_acts:
-                y_act = self.y_mirror(act.copy())
+                y_act = self.kaleidoscope_robot(act.copy(),xyz_theta)
                 y_acts.append(y_act.copy())
 
             for achieved_goal in o_achieved_goals:
-                y_achieved_goal = self.y_mirror(achieved_goal.copy())
+                y_achieved_goal = self.kaleidoscope_robot(achieved_goal.copy(),xyz_theta)
                 y_achieved_goals.append(y_achieved_goal.copy())
             ymirror_episode_set.append([y_obs, y_acts, y_goals, y_achieved_goals])
         for ymirror_episode in ymirror_episode_set:
             ka_episodes_set.append(ymirror_episode)
 
+
+        if BOOL_OUTPUT_ONE_EPISODE_TRAJ:
+            #output the symmetric thetas for one step 
+            output_theta_set = xyz_theta_set.copy()
+            output_theta_set.append(xyz_theta)
+            save_dir = '/home/bourne/data_plot/visualized_plot_ker_traj/all_n_rsym_thetas/thetas_n_rsym_'+str(self.n_rsym)+'.npy'
+            np.save(save_dir, output_theta_set)
+
         # output the trajs for one step
         if BOOL_OUTPUT_ONE_EPISODE_TRAJ:
-            np.save(('/home/bourne/data_plot/all_n_rsym_trajs/trajs_n_rsym_'+str(self.n_rsym)+'.npy'), ka_episodes_set)
+            np.save(('/home/bourne/data_plot/visualized_plot_ker_traj/all_n_rsym_trajs/trajs_n_rsym_'+str(self.n_rsym)+'.npy'), ka_episodes_set)
             set_trace()
 
         return ka_episodes_set

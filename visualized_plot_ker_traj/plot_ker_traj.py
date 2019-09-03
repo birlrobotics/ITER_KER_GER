@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import rotations
 import math
-
+from ipdb import set_trace
 # Sorting the directory
 def sorting_dir(load_data_folder):
     sorting_folder_list = os.listdir(load_data_folder)
@@ -33,7 +33,7 @@ z_length = 0.4
 cube_x,cube_y,cube_z = get_cube(cube_x,cube_y,cube_z)
 
 # Extract the directories.
-load_traj_folder = '/Users/bourne/Downloads/mirror learning/data_plot/all_n_rsym_trajs/'
+load_traj_folder = '/home/bourne/data_plot/visualized_plot_ker_traj/all_n_rsym_trajs'
 # Sorting the files in the list: 0,1,2,3..., for plotting the label legends in right orders.
 traj_sorted_folder_list = sorting_dir(load_traj_folder)
 
@@ -75,7 +75,7 @@ for d in ds:
 
 
 # Begin===================Extract the thetas.
-load_theta_folder = '/Users/bourne/Downloads/mirror learning/data_plot/all_n_rsym_thetas/'
+load_theta_folder = '/home/bourne/data_plot/visualized_plot_ker_traj/all_n_rsym_thetas'
 # Sorting the files in the list: 0,1,2,3..., for plotting the label legends in right orders.
 thetas_sorted_folder_list = sorting_dir(load_theta_folder)
 
@@ -125,7 +125,8 @@ for (xs,ys,zs,n_rsym_thetas) in zip(all_xs,all_ys,all_zs,all_thetas):
             normal = np.array([0, 1, 0])  
             # for i in range(360):
             theta = n_rsym_thetas_list.pop()
-            rot_vec = np.array([0, 0, theta ])
+            rot_vec = theta
+            
             rot_mat = rotations.euler2mat(rot_vec)
             normal = np.dot(rot_mat,normal)
             # a plane is a*x+b*y+c*z+d=0
@@ -161,5 +162,5 @@ for (xs,ys,zs,n_rsym_thetas) in zip(all_xs,all_ys,all_zs,all_thetas):
     ax.set_zlabel('Z Label')
 plt.show()
 
-
+set_trace()
 
