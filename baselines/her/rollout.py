@@ -40,28 +40,40 @@ class RolloutWorker:
         self.Q_history = deque(maxlen=history_len)
 
         self.n_episodes = 0
-        self.reset_all_rollouts()
+        self.reset_all_rollouts(False)
         self.clear_history()
         self.n_rsym = n_rsym
         self.mirror = mirror_learning(env_name,n_rsym)
 
-    def reset_all_rollouts(self):
-        self.obs_dict = self.venv.reset()
-        self.initial_o = self.obs_dict['observation']
-        self.initial_ag = self.obs_dict['achieved_goal']
-        self.g = self.obs_dict['desired_goal']
-
-    def generate_rollouts(self,terminate_ker=False):
-        if self.n_rsym and terminate_ker==False:
-            return self.generate_rollouts_ker()
+    def reset_all_rollouts(self,if_buffer_goal=False):
+        if if_buffer_goal:
+            set_trace()
+            buffer_sample_goal = self.policy.get_buffer_goal().copy()
+            self.obs_dict = self.venv.reset(buffer_goal=buffer_sample_goal.copy())
+            self.initial_o = self.obs_dict['observation']
+            self.initial_ag = self.obs_dict['achieved_goal']
+            self.g = self.obs_dict['desired_goal']
+            set_trace()
         else :
-            return self.generate_rollouts_vanilla()
+            self.obs_dict = self.venv.reset()
+            self.initial_o = self.obs_dict['observation']
+            self.initial_ag = self.obs_dict['achieved_goal']
+            self.g = self.obs_dict['desired_goal']
+    def generate_rollouts(self,terminate_ker=False,if_buffer_goal=False):
+        if self.n_rsym and terminate_ker==False:
+            return self.generate_rollouts_ker(if_buffer_goal)
+        else :
+            return self.generate_rollouts_vanilla(if_buffer_goal)
 
-    def generate_rollouts_vanilla(self):
+    def generate_rollouts_vanilla(self,if_buffer_goal=False):
         """Performs `rollout_batch_size` rollouts in parallel for time horizon `T` with the current
         policy acting on it accordingly.
         """
-        self.reset_all_rollouts()
+        self.reset_all_rollouts(if_buffer_goal)
+        # Should turn off for normal training phase
+        
+        if if_buffer_goal:
+            self.exploit = True
         # compute observations
         o = np.empty((self.rollout_batch_size, self.dims['o']), np.float32)  # observations
         ag = np.empty((self.rollout_batch_size, self.dims['g']), np.float32)  # achieved goals
@@ -112,7 +124,7 @@ class RolloutWorker:
 
             if np.isnan(o_new).any():
                 self.logger.warn('NaN caught during rollout generation. Trying again...')
-                self.reset_all_rollouts()
+                self.reset_all_rollouts(False)
                 return self.generate_rollouts()
 
             dones.append(done)
@@ -142,13 +154,18 @@ class RolloutWorker:
             self.Q_history.append(np.mean(Qs))
         self.n_episodes += self.rollout_batch_size
 
+        if if_buffer_goal:
+            self.exploit = False
+
         return convert_episode_to_batch_major(episode)
 
-    def generate_rollouts_ker(self):
+    def generate_rollouts_ker(self,if_buffer_goal=False):
         """Performs `rollout_batch_size` rollouts in parallel for time horizon `T` with the current
         policy acting on it accordingly.
         """
-        self.reset_all_rollouts()
+        self.reset_all_rollouts(if_buffer_goal)
+        if if_buffer_goal:
+            self.exploit = True
 
         episodes = []
         episodes_batch = []
@@ -205,7 +222,7 @@ class RolloutWorker:
             # no need
             if np.isnan(o_new).any():
                 self.logger.warn('NaN caught during rollout generation. Trying again...')
-                self.reset_all_rollouts()
+                self.reset_all_rollouts(False)
                 return self.generate_rollouts()
 
             dones.append(done)
@@ -253,7 +270,8 @@ class RolloutWorker:
             episode_batch = convert_episode_to_batch_major(episode)
             episodes_batch.append(episode_batch)
         # ----------------end---------------------------
-
+        if if_buffer_goal:
+            self.exploit = False
         return episodes_batch
 
     def mirror_learning_type(self):

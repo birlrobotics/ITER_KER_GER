@@ -279,7 +279,6 @@ class DDPG(object):
         ag, ag_2 = transitions['ag'], transitions['ag_2']
         transitions['o'], transitions['g'] = self._preprocess_og(o, ag, g)
         transitions['o_2'], transitions['g_2'] = self._preprocess_og(o_2, ag_2, g)
-
         transitions_batch = [transitions[key] for key in self.stage_shapes.keys()]
         return transitions_batch
 
@@ -288,6 +287,11 @@ class DDPG(object):
             batch = self.sample_batch()
         assert len(self.buffer_ph_tf) == len(batch)
         self.sess.run(self.stage_op, feed_dict=dict(zip(self.buffer_ph_tf, batch)))
+
+    def get_buffer_goal(self):
+        sample_goal = self.buffer.sample_buffer_goal()
+        return sample_goal  
+
 
     def train(self, stage=True):
         if stage:

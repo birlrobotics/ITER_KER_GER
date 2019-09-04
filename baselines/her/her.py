@@ -50,6 +50,7 @@ def train(*, policy, rollout_worker, evaluator,
     single_suc_rate_threshold = SINGLE_SUC_RATE_THRESHOLD
     terminate_ker_now = False
     if_clear_buffer = False
+    if_buffer_goal = True
     for epoch in range(n_epochs):
         # train
         
@@ -81,10 +82,12 @@ def train(*, policy, rollout_worker, evaluator,
             policy.update_target_net()
         policy.save(save_path)
 
-        # test
         evaluator.clear_history()
         for _ in range(n_test_rollouts):
             evaluator.generate_rollouts()
+
+
+
 
         # record logs
         logger.record_tabular('epoch', epoch)
@@ -95,6 +98,13 @@ def train(*, policy, rollout_worker, evaluator,
         for key, val in rollout_worker.logs('train'):
             logger.record_tabular(key, mpi_average(val))
         for key, val in policy.logs():
+            logger.record_tabular(key, mpi_average(val))
+
+        # test if_buffer_goal
+        rollout_worker.clear_history()
+        for _ in range(n_test_rollouts):
+            rollout_worker.generate_rollouts(if_buffer_goal=if_buffer_goal)
+        for key, val in rollout_worker.logs('buffer_goal_train'):
             logger.record_tabular(key, mpi_average(val))
 
         if rank == 0:

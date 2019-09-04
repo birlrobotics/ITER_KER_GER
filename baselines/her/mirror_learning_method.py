@@ -7,8 +7,8 @@ import math
 PI = math.pi
 SYM_PLANE_Y = 0.75 * 2
 
-IF_CLEAR_BUFFER = True
-SINGLE_SUC_RATE_THRESHOLD = 1  # Set to none if donnot terminate KER
+IF_CLEAR_BUFFER = False
+SINGLE_SUC_RATE_THRESHOLD = None  # Set to none if donnot terminate KER
 
 
 MAX_Z_THETA_PICK_PUSH = 0.1443
@@ -176,7 +176,6 @@ class mirror_learning:
             self.sym_plane = SYM_PLANE_X
         # elif sym_method == 'kaleidoscope_robot':
         #     SYM_PLANE = SYM_PLANE_Y
-
 
         param_len = len(param[0])
         if param_len == 3:    #goal & achieved goal

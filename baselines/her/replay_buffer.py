@@ -1,7 +1,7 @@
 import threading
 from ipdb import set_trace
 import numpy as np
-
+from collections import deque
 
 class ReplayBuffer:
     def __init__(self, buffer_shapes, size_in_transitions, T, sample_transitions):
@@ -28,7 +28,8 @@ class ReplayBuffer:
         self.n_transitions_stored = 0
 
         self.lock = threading.Lock()
-
+        self.maxsize_goal_buffer = 100000
+        self.augmented_goal_buffer = []
     @property
     def full(self):
         with self.lock:
@@ -52,7 +53,23 @@ class ReplayBuffer:
         for key in (['r', 'o_2', 'ag_2'] + list(self.buffers.keys())):
             assert key in transitions, "key %s missing from transitions" % key
 
+        # for goal in transitions['ag']:
+        #     if len(self.augmented_goal_buffer) >= self.maxsize_goal_buffer:
+        #         pop_index = np.random.randint(0,len(self.augmented_goal_buffer))
+        #         self.augmented_goal_buffer.pop(pop_index)
+        #     self.augmented_goal_buffer.append(goal)
+        
         return transitions
+
+    def sample_buffer_goal(self):
+        '''
+        Just sample 1 goal
+        '''
+        sample_index = np.random.randint(0,len(self.augmented_goal_buffer))
+        sample_goal = self.augmented_goal_buffer[sample_index]
+        
+
+        return sample_goal
 
     def store_episode(self, episode_batch):
         """episode_batch: array(batch_size x (T or T+1) x dim_key)
@@ -69,6 +86,13 @@ class ReplayBuffer:
                 self.buffers[key][idxs] = episode_batch[key]
 
             self.n_transitions_stored += batch_size * self.T
+        
+        KER_augmented_goal = episode_batch['g'][0][0]
+        if len(self.augmented_goal_buffer) >= self.maxsize_goal_buffer:
+            pop_index = np.random.randint(0,len(self.augmented_goal_buffer))
+            self.augmented_goal_buffer.pop(pop_index)
+        self.augmented_goal_buffer.append(KER_augmented_goal)
+
 
     def get_current_episode_size(self):
         with self.lock:
