@@ -12,6 +12,7 @@ from baselines.her.replay_buffer import ReplayBuffer
 from baselines.common.mpi_adam import MpiAdam
 from baselines.common import tf_util
 from ipdb import set_trace
+from baselines.her.mirror_learning_method import mirror_learning , IF_USE_KER
 
 def dims_to_shapes(input_dims):
     return {key: tuple([val]) if val > 0 else tuple() for key, val in input_dims.items()}
@@ -21,7 +22,7 @@ global DEMO_BUFFER #buffer for demonstrations
 
 class DDPG(object):
     @store_args
-    def __init__(self, input_dims, buffer_size, hidden, layers, network_class, polyak, batch_size,
+    def __init__(self,env_name,n_rsym, input_dims, buffer_size, hidden, layers, network_class, polyak, batch_size,
                  Q_lr, pi_lr, norm_eps, norm_clip, max_u, action_l2, clip_obs, scope, T,
                  rollout_batch_size, subtract_goals, relative_goals, clip_pos_returns, clip_return,
                  bc_loss, q_filter, num_demo, demo_batch_size, prm_loss_weight, aux_loss_weight,
@@ -105,6 +106,11 @@ class DDPG(object):
 
         global DEMO_BUFFER
         DEMO_BUFFER = ReplayBuffer(buffer_shapes, buffer_size, self.T, self.sample_transitions) #initialize the demo buffer; in the same way as the primary data buffer
+
+        self.if_use_KER = IF_USE_KER
+        self.n_rsym = n_rsym
+        self.mirror = mirror_learning(env_name,n_rsym)
+
 
     def _random_action(self, n):
         return np.random.uniform(low=-self.max_u, high=self.max_u, size=(n, self.dimu))
@@ -275,6 +281,9 @@ class DDPG(object):
         else:
             transitions = self.buffer.sample(self.batch_size) #otherwise only sample from primary buffer
 
+        if self.batch_size == 8:
+            if self.if_use_KER:
+                transitions = self.mirror.mirror_process_after_extraction(transitions)
         o, o_2, g = transitions['o'], transitions['o_2'], transitions['g']
         ag, ag_2 = transitions['ag'], transitions['ag_2']
         transitions['o'], transitions['g'] = self._preprocess_og(o, ag, g)
@@ -335,7 +344,7 @@ class DDPG(object):
         batch_tf['r'] = tf.reshape(batch_tf['r'], [-1, 1])
 
         #choose only the demo buffer samples
-        mask = np.concatenate((np.zeros(self.batch_size - self.demo_batch_size), np.ones(self.demo_batch_size)), axis = 0)
+        mask = np.concatenate((np.zeros(self.batch_size*2**self.n_rsym - self.demo_batch_size), np.ones(self.demo_batch_size)), axis = 0)
 
         # networks
         with tf.variable_scope('main') as vs:

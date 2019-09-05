@@ -52,10 +52,10 @@ class RolloutWorker:
         self.g = self.obs_dict['desired_goal']
 
     def generate_rollouts(self,terminate_ker=False):
-        if self.n_rsym and terminate_ker==False:
-            return self.generate_rollouts_ker()
-        else :
-            return self.generate_rollouts_vanilla()
+        # if self.n_rsym and terminate_ker==False:
+        #     return self.generate_rollouts_ker()
+        # else :
+        return self.generate_rollouts_vanilla()
 
     def generate_rollouts_vanilla(self):
         """Performs `rollout_batch_size` rollouts in parallel for time horizon `T` with the current
@@ -125,7 +125,7 @@ class RolloutWorker:
             ag[...] = ag_new
         obs.append(o.copy())
         achieved_goals.append(ag.copy())
-
+        # set_trace()
         episode = dict(o=obs,
                        u=acts,
                        g=goals,
@@ -221,7 +221,8 @@ class RolloutWorker:
         obs.append(o.copy())
         achieved_goals.append(ag.copy())
 
-        # ----------------Mirror Augmentation--------------------------- 
+        # ----------------Mirror Augmentation---------------------------
+        
         original_ka_episodes = self.mirror.mirror_process(obs,acts,goals,achieved_goals)
         # ----------------end---------------------------
 

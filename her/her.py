@@ -65,17 +65,8 @@ def train(*, policy, rollout_worker, evaluator,
         for _ in range(n_cycles):
             # generate episodes
             episodes = rollout_worker.generate_rollouts(terminate_ker=terminate_ker_now)
+            policy.store_episode(episodes,if_clear_buffer_first = if_clear_buffer)
 
-            # with KER
-            if (n_rsym_number !=0) and terminate_ker_now==False:
-                for episode in episodes:
-                    policy.store_episode(episode)
-            # without KER
-            else:
-                policy.store_episode(episodes,if_clear_buffer_first = if_clear_buffer)
-                # HER/DDPG do not need clear buffer
-                if_clear_buffer = False
-            
             for _ in range(n_batches):
                 policy.train()
             policy.update_target_net()
@@ -178,7 +169,7 @@ def learn(*, network, env, total_timesteps,
         logger.warn()
 
     dims = config.configure_dims(params)
-    policy = config.configure_ddpg(dims=dims, params=params, clip_return=clip_return)
+    policy = config.configure_ddpg(env_name=env_name, n_rsym=n_rsym,dims=dims, params=params, clip_return=clip_return)
     if load_path is not None:
         tf_util.load_variables(load_path)
 

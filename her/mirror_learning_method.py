@@ -16,7 +16,7 @@ MAX_Z_THETA_SLIDE = 0.0697
 COUNT_UNVALID_OBJ = True
 unvalid_episode = False
 BOOL_OUTPUT_ONE_EPISODE_TRAJ = False # Generated one episode KER trajectories for plotting
-
+IF_USE_KER = True
 class mirror_learning:
     def __init__(self,env_type,n_rsym):
         self.env_type = env_type
@@ -315,7 +315,72 @@ class mirror_learning:
         
 
 
+    def mirror_process_after_extraction(self,transitions):
 
+
+        z_theta_set = []
+        # One symmetry will be done in the y mirror, so here n_rsym need to minus 1 
+        for _ in range(self.n_rsym-1):
+            
+            z_theta = np.random.uniform(0, self.max_z_theta)
+            z_theta_set.append(z_theta)
+        #output the symmetric thetas for one step 
+        if BOOL_OUTPUT_ONE_EPISODE_TRAJ:
+            output_theta_set = z_theta_set.copy()
+            output_theta_set.append(0)
+            save_dir = '/home/bourne/data_plot/all_n_rsym_thetas/thetas_n_rsym_'+str(self.n_rsym)+'.npy'
+            np.save(save_dir, output_theta_set)
+
+
+        #--------------- recursive symmetry
+        for z_theta in z_theta_set:
+            for key in transitions.keys():
+                tmp_transition = []
+                if key=='r':
+                    for i,component in enumerate(transitions[key]):
+                        s_component = component.copy().reshape(1,-1)
+                        tmp_transition.append(s_component)
+                else:
+                    for i,component in enumerate(transitions[key]):
+                        s_component = component.copy().reshape(1,-1)
+                        s_component = self.kaleidoscope_robot(s_component.copy(),z_theta)
+                        tmp_transition.append(s_component)
+                        
+                        # be careful of the size (n,25), (n,3), (n,4)
+
+                if key=='r':
+                    for s_component in tmp_transition:
+                        transitions[key] = np.append(transitions[key],s_component.copy())
+                else:
+                    for s_component in tmp_transition:
+                        transitions[key] = np.row_stack((transitions[key],s_component.copy()))
+                        
+
+        #--------------- All datas are symmetrized with y axis.
+
+        for key in transitions.keys():
+            tmp_transition = []
+            if key=='r':
+                for i,component in enumerate(transitions[key]):
+                    s_component = component.copy().reshape(1,-1)
+                    tmp_transition.append(s_component)
+            else:
+                for i,component in enumerate(transitions[key]):
+                    s_component = component.copy().reshape(1,-1)
+                    s_component = self.y_mirror(s_component.copy())
+                    tmp_transition.append(s_component)
+                    
+                    # be careful of the size (n,25), (n,3), (n,4)
+
+            if key=='r':
+                for s_component in tmp_transition:
+                    transitions[key] = np.append(transitions[key],s_component.copy())
+            else:
+                for s_component in tmp_transition:
+                    transitions[key] = np.row_stack((transitions[key],s_component.copy()))
+
+        return transitions
+        #--------------- end.
 
 
 
