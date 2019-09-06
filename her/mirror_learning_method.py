@@ -217,104 +217,6 @@ class mirror_learning:
         return param.copy()
 
 
-    def mirror_process(self,obs,acts,goals,achieved_goals):
-
-
-        # ---------------------------recursive symmetry------------------------------------------------
-        ka_episodes_set=[]
-        ka_episodes_set.append([obs,acts,goals,achieved_goals])
-        z_theta_set = []
-
-        # If self.n_rsym == None, means use vanillar her, or in test mode.
-        if self.n_rsym == None or self.n_rsym == 0:
-            if BOOL_OUTPUT_ONE_EPISODE_TRAJ:
-                np.save(('/home/bourne/data_plot/all_n_rsym_trajs/sym_'+str(self.n_rsym)+'.npy'), ka_episodes_set)
-                set_trace()
-            return ka_episodes_set
-
-
-        # not finished yet
-        # self.compute_sym_number(goals[0][0])
-
-        # One symmetry will be done in the y mirror, so here n_rsym need to minus 1 
-        for _ in range(self.n_rsym-1):
-            z_theta = np.random.uniform(0, self.max_z_theta)
-            z_theta_set.append(z_theta)
-
-        if BOOL_OUTPUT_ONE_EPISODE_TRAJ:
-            #output the symmetric thetas for one step 
-            output_theta_set = z_theta_set.copy()
-            output_theta_set.append(0)
-            save_dir = '/home/bourne/data_plot/all_n_rsym_thetas/thetas_n_rsym_'+str(self.n_rsym)+'.npy'
-            np.save(save_dir, output_theta_set)
-
-        for z_theta in z_theta_set:
-            ka_episodes_tem = []
-            for [o_obs, o_acts, o_goals, o_achieved_goals] in ka_episodes_set:
-                s_goals = []
-                s_obs = []
-                s_acts = []
-                s_achieved_goals = []
-                for goal in o_goals:
-                    s_goal = self.kaleidoscope_robot(goal.copy(),z_theta)
-                    s_goals.append(s_goal.copy())
-
-                for ob in o_obs:
-                    s_ob = self.kaleidoscope_robot(ob.copy(),z_theta)
-                    s_obs.append(s_ob.copy())
-
-                for act in o_acts:
-                    s_act = self.kaleidoscope_robot(act.copy(),z_theta)
-                    s_acts.append(s_act.copy())
-
-                for achieved_goal in o_achieved_goals:
-                    s_achieved_goal = self.kaleidoscope_robot(achieved_goal.copy(),z_theta)
-                    s_achieved_goals.append(s_achieved_goal.copy())
-
-                ka_episodes_tem.append([s_obs, s_acts, s_goals, s_achieved_goals])
-            for ka_episode in ka_episodes_tem:
-                ka_episodes_set.append(ka_episode)
-        # ---------------------------end
-
-        #--------------- All datas are symmetrized with y axis.
-        ymirror_episode_set = []
-        for [o_obs, o_acts, o_goals, o_achieved_goals] in ka_episodes_set:
-            y_goals = []
-            y_obs = []
-            y_acts = []
-            y_achieved_goals = []
-            for goal in o_goals:
-                y_goal = self.y_mirror(goal.copy())
-                y_goals.append(y_goal.copy())
-
-            for ob in o_obs:
-                y_ob = self.y_mirror(ob.copy())
-                y_obs.append(y_ob.copy())
-
-            for act in o_acts:
-                y_act = self.y_mirror(act.copy())
-                y_acts.append(y_act.copy())
-
-            for achieved_goal in o_achieved_goals:
-                y_achieved_goal = self.y_mirror(achieved_goal.copy())
-                y_achieved_goals.append(y_achieved_goal.copy())
-            ymirror_episode_set.append([y_obs, y_acts, y_goals, y_achieved_goals])
-        for ymirror_episode in ymirror_episode_set:
-            ka_episodes_set.append(ymirror_episode)
-
-        # output the trajs for one step
-        if BOOL_OUTPUT_ONE_EPISODE_TRAJ:
-            np.save(('/home/bourne/data_plot/all_n_rsym_trajs/trajs_n_rsym_'+str(self.n_rsym)+'.npy'), ka_episodes_set)
-            set_trace()
-
-        return ka_episodes_set
-        #--------------- end.
-
-    # def compute_sym_number(self,goal):
-    #     self.n_rsym = N_RSYM
-        
-
-
     def mirror_process_after_extraction(self,transitions):
 
 
@@ -355,7 +257,7 @@ class mirror_learning:
                     for s_component in tmp_transition:
                         transitions[key] = np.row_stack((transitions[key],s_component.copy()))
                         
-
+        
         #--------------- All datas are symmetrized with y axis.
 
         for key in transitions.keys():
@@ -378,7 +280,6 @@ class mirror_learning:
             else:
                 for s_component in tmp_transition:
                     transitions[key] = np.row_stack((transitions[key],s_component.copy()))
-
         return transitions
         #--------------- end.
 

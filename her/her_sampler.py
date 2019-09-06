@@ -1,5 +1,6 @@
 import numpy as np
 from ipdb import set_trace
+from baselines.her.mirror_learning_method import mirror_learning , IF_USE_KER
 
 def make_sample_her_transitions(replay_strategy, replay_k, reward_fun):
     """Creates a sample function that can be used for HER experience replay.
@@ -16,9 +17,11 @@ def make_sample_her_transitions(replay_strategy, replay_k, reward_fun):
     else:  # 'replay_strategy' == 'none'
         future_p = 0
 
-    def _sample_her_transitions(episode_batch, batch_size_in_transitions):
+    def _sample_her_transitions(episode_batch, batch_size_in_transitions,env_name,n_rsym):
         """episode_batch is {key: array(buffer_size x T x dim_key)}
         """
+        mirror = mirror_learning(env_name,n_rsym)
+
         T = episode_batch['u'].shape[1]
         rollout_batch_size = episode_batch['u'].shape[0]
         batch_size = batch_size_in_transitions
@@ -57,6 +60,8 @@ def make_sample_her_transitions(replay_strategy, replay_k, reward_fun):
                        for k in transitions.keys()}
 
         assert(transitions['u'].shape[0] == batch_size_in_transitions)
+
+        transitions = mirror.mirror_process_after_extraction(transitions)
         return transitions
 
     return _sample_her_transitions

@@ -109,6 +109,7 @@ class DDPG(object):
 
         self.if_use_KER = IF_USE_KER
         self.n_rsym = n_rsym
+        self.env_name =env_name
         self.mirror = mirror_learning(env_name,n_rsym)
 
 
@@ -205,7 +206,7 @@ class DDPG(object):
                 episode['o_2'] = episode['o'][:, 1:, :]
                 episode['ag_2'] = episode['ag'][:, 1:, :]
                 num_normalizing_transitions = transitions_in_episode_batch(episode)
-                transitions = self.sample_transitions(episode, num_normalizing_transitions)
+                transitions = self.sample_transitions(episode, num_normalizing_transitions, env_name=self.env_name,n_rsym=self.n_rsym)
 
                 o, g, ag = transitions['o'], transitions['g'], transitions['ag']
                 transitions['o'], transitions['g'] = self._preprocess_og(o, ag, g)
@@ -225,8 +226,6 @@ class DDPG(object):
         episode_batch: array of batch_size x (T or T+1) x dim_key
                        'o' is of size T+1, others are of size T
         """
-        if if_clear_buffer_first:
-            self.buffer.clear_buffer()
         self.buffer.store_episode(episode_batch)
 
 
@@ -235,7 +234,7 @@ class DDPG(object):
             episode_batch['o_2'] = episode_batch['o'][:, 1:, :]
             episode_batch['ag_2'] = episode_batch['ag'][:, 1:, :]
             num_normalizing_transitions = transitions_in_episode_batch(episode_batch)
-            transitions = self.sample_transitions(episode_batch, num_normalizing_transitions)
+            transitions = self.sample_transitions(episode_batch, num_normalizing_transitions,env_name=self.env_name,n_rsym=self.n_rsym)
 
             o, g, ag = transitions['o'], transitions['g'], transitions['ag']
             transitions['o'], transitions['g'] = self._preprocess_og(o, ag, g)
@@ -279,11 +278,8 @@ class DDPG(object):
                     rolloutV.append(v.tolist())
                 transitions[k] = np.array(rolloutV)
         else:
-            transitions = self.buffer.sample(self.batch_size) #otherwise only sample from primary buffer
-
-        if self.batch_size == 8:
-            if self.if_use_KER:
-                transitions = self.mirror.mirror_process_after_extraction(transitions)
+            minibatch_for_KER = int(self.batch_size/2**self.n_rsym)
+            transitions = self.buffer.sample(minibatch_for_KER,env_name=self.env_name,n_rsym=self.n_rsym) #otherwise only sample from primary buffer
         o, o_2, g = transitions['o'], transitions['o_2'], transitions['g']
         ag, ag_2 = transitions['ag'], transitions['ag_2']
         transitions['o'], transitions['g'] = self._preprocess_og(o, ag, g)
@@ -344,7 +340,7 @@ class DDPG(object):
         batch_tf['r'] = tf.reshape(batch_tf['r'], [-1, 1])
 
         #choose only the demo buffer samples
-        mask = np.concatenate((np.zeros(self.batch_size*2**self.n_rsym - self.demo_batch_size), np.ones(self.demo_batch_size)), axis = 0)
+        mask = np.concatenate((np.zeros(self.batch_size - self.demo_batch_size), np.ones(self.demo_batch_size)), axis = 0)
 
         # networks
         with tf.variable_scope('main') as vs:
