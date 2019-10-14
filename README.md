@@ -28,7 +28,7 @@ python -m baselines.run --alg=her --env=FetchPickAndPlace-v1 --num_timesteps=1e6
 ```
 
 options include:
-* `--num_cpu`: Number of cpus. The paper uses 19 cpus (as in the [original paper](https://arxiv.org/abs/1802.09464) presenting this HER implementation. (**Please note that as the HER's author said, running the code with different cpus is NOT equivalent. For more information about this issue, please check [here](https://github.com/openai/baselines/issues/314).**)
+* `--num_cpu`: Number of workers(threads/cpus). The results in our paper just used 1 worker in order to show the significant improvements in learning speed. The [original HER paper](https://arxiv.org/abs/1802.09464) presents this HER implementation. (**Please note that as the HER's author said, running the code with different cpus is NOT equivalent. For more information about this issue, please check [here](https://github.com/openai/baselines/issues/314).**)
 * `--env`: To specify the experimental environment in each run. Possible choices are *FetchPickAndPlace-v1, FetchSlide-v1, FetchPush-v1*. (There will be more choices on Baxter robot in the near future, please keep watching on our repo :). )
 * `--before_PER_minibatch_size`: To specify the original minibatch size.
 * `--n_rsym`: To specify the hyperparameter of KER. More specifically, it is to specify how many reflectional planes you would like to augment the samples. For more information, please checkout our [Paper](https://arxiv.org/abs/1909.10707#).
