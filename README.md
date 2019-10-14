@@ -25,7 +25,7 @@ copy -rf her ~/baselines/baselines/
 ```
 ## Usage
 
-To reproduce the results in our paper, please run :
+To reproduce the best result in our paper, please run :
 ```
 python -m baselines.run --alg=her --env=FetchPickAndPlace-v1 --num_timesteps=1e6 --n_cycles=100 --save_path=/home/user/policies/her/iter --log_path=/home/user/log_data/her/iter --before_PER_minibatch_size=256 --n_rsym=8 --n_PER=4
 ```
