@@ -6,13 +6,17 @@ import pickle
 from baselines.her.util import convert_episode_to_batch_major, store_args
 from ipdb import set_trace
 from baselines.her.mirror_learning_method import mirror_learning
+# from baselines.her.imaginary import imaginary_learning
+
+
 
 class RolloutWorker:
 
     @store_args
-    def __init__(self,env_name, venv, policy, dims, logger, T, rollout_batch_size=1,
+    def __init__(self, env_name, venv, policy, dims, logger, T, rollout_batch_size=1,
                  exploit=False, use_target_net=False, compute_Q=False, noise_eps=0,
-                 random_eps=0, history_len=100, render=False, monitor=False,n_rsym=None, **kwargs):
+                 random_eps=0, history_len=100, render=False, monitor=False,n_rsym=0,
+                  **kwargs):
         """Rollout worker generates experience by interacting with one or many environments.
 
         Args:
@@ -45,6 +49,7 @@ class RolloutWorker:
         self.n_rsym = n_rsym
         self.mirror = mirror_learning(env_name,n_rsym)
 
+
     def reset_all_rollouts(self):
         self.obs_dict = self.venv.reset()
         self.initial_o = self.obs_dict['observation']
@@ -52,7 +57,9 @@ class RolloutWorker:
         self.g = self.obs_dict['desired_goal']
 
     def generate_rollouts(self,terminate_ker=False):
-        if self.n_rsym and terminate_ker==False:
+        # if self.n_rsym and terminate_ker==False:
+        
+        if self.n_rsym:
             return self.generate_rollouts_ker()
         else :
             return self.generate_rollouts_vanilla()
@@ -141,7 +148,7 @@ class RolloutWorker:
         if self.compute_Q:
             self.Q_history.append(np.mean(Qs))
         self.n_episodes += self.rollout_batch_size
-
+        
         return convert_episode_to_batch_major(episode)
 
     def generate_rollouts_ker(self):
@@ -224,6 +231,13 @@ class RolloutWorker:
         # ----------------Mirror Augmentation--------------------------- 
         original_ka_episodes = self.mirror.mirror_process(obs,acts,goals,achieved_goals)
         # ----------------end---------------------------
+
+        # ----------------Imaginary Augmentation--------------------------- 
+        # imagined_ka_episodes = self.imagined_machine.imagine_process(original_ka_episodes)
+        # ----------------end---------------------------
+
+
+
 
         # ----------------pack up as transition--------------------------- 
         for (obs,acts,goals,achieved_goals) in original_ka_episodes:

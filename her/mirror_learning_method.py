@@ -7,16 +7,13 @@ import math
 PI = math.pi
 SYM_PLANE_Y = 0.75 * 2
 
-IF_CLEAR_BUFFER = True
-SINGLE_SUC_RATE_THRESHOLD = 1  # Set to none if donnot terminate KER
+IF_CLEAR_BUFFER = False
+SINGLE_SUC_RATE_THRESHOLD = None  # Set to none if donnot terminate KER
 
 
 MAX_Z_THETA_PICK_PUSH = 0.1443
 MAX_Z_THETA_SLIDE = 0.0697
-COUNT_UNVALID_OBJ = True
-unvalid_episode = False
 BOOL_OUTPUT_ONE_EPISODE_TRAJ = False # Generated one episode KER trajectories for plotting
-
 class mirror_learning:
     def __init__(self,env_type,n_rsym):
         self.env_type = env_type
@@ -220,7 +217,7 @@ class mirror_learning:
     def mirror_process(self,obs,acts,goals,achieved_goals):
 
 
-        # ---------------------------recursive symmetry------------------------------------------------
+        # ---------------------------linear symmetry------------------------------------------------
         ka_episodes_set=[]
         ka_episodes_set.append([obs,acts,goals,achieved_goals])
         z_theta_set = []
@@ -228,7 +225,7 @@ class mirror_learning:
         # If self.n_rsym == None, means use vanillar her, or in test mode.
         if self.n_rsym == None or self.n_rsym == 0:
             if BOOL_OUTPUT_ONE_EPISODE_TRAJ:
-                np.save(('/home/bourne/data_plot/all_n_rsym_trajs/sym_'+str(self.n_rsym)+'.npy'), ka_episodes_set)
+                np.save(('/home/bourne/data_plot/visualized_plot_ker_traj/all_n_rsym_trajs/sym_'+str(self.n_rsym)+'.npy'), ka_episodes_set)
                 set_trace()
             return ka_episodes_set
 
@@ -245,11 +242,12 @@ class mirror_learning:
             #output the symmetric thetas for one step 
             output_theta_set = z_theta_set.copy()
             output_theta_set.append(0)
-            save_dir = '/home/bourne/data_plot/all_n_rsym_thetas/thetas_n_rsym_'+str(self.n_rsym)+'.npy'
+            save_dir = '/home/bourne/data_plot/visualized_plot_ker_traj/all_n_rsym_trajs/thetas_n_rsym_'+str(self.n_rsym)+'.npy'
             np.save(save_dir, output_theta_set)
 
+        ka_episodes_tem = []
         for z_theta in z_theta_set:
-            ka_episodes_tem = []
+            
             for [o_obs, o_acts, o_goals, o_achieved_goals] in ka_episodes_set:
                 s_goals = []
                 s_obs = []
@@ -272,8 +270,8 @@ class mirror_learning:
                     s_achieved_goals.append(s_achieved_goal.copy())
 
                 ka_episodes_tem.append([s_obs, s_acts, s_goals, s_achieved_goals])
-            for ka_episode in ka_episodes_tem:
-                ka_episodes_set.append(ka_episode)
+        for ka_episode in ka_episodes_tem:
+            ka_episodes_set.append(ka_episode)
         # ---------------------------end
 
         #--------------- All datas are symmetrized with y axis.
@@ -304,15 +302,11 @@ class mirror_learning:
 
         # output the trajs for one step
         if BOOL_OUTPUT_ONE_EPISODE_TRAJ:
-            np.save(('/home/bourne/data_plot/all_n_rsym_trajs/trajs_n_rsym_'+str(self.n_rsym)+'.npy'), ka_episodes_set)
+            np.save(('/home/bourne/data_plot/visualized_plot_ker_traj/all_n_rsym_trajs/trajs_n_rsym_'+str(self.n_rsym)+'.npy'), ka_episodes_set)
             set_trace()
-
         return ka_episodes_set
         #--------------- end.
 
-    # def compute_sym_number(self,goal):
-    #     self.n_rsym = N_RSYM
-        
 
 
 
