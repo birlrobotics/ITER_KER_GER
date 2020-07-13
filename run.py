@@ -78,9 +78,9 @@ def train(args, extra_args):
         seed=seed,
         total_timesteps=total_timesteps,
         save_path = args.save_path,
-        n_rsym = args.n_rsym,
-        before_PER_minibatch_size = args.before_PER_minibatch_size,
-        n_PER = args.n_PER,
+        n_ker = args.n_ker,
+        before_GER_minibatch_size = args.before_GER_minibatch_size,
+        n_GER = args.n_GER,
         **alg_kwargs
     )
 

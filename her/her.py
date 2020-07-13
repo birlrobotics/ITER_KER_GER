@@ -12,7 +12,7 @@ import baselines.her.experiment.config as config
 from baselines.her.rollout import RolloutWorker
 from ipdb import set_trace
 from tensorboardX import SummaryWriter
-from baselines.her.mirror_learning_method import SINGLE_SUC_RATE_THRESHOLD,IF_CLEAR_BUFFER
+from baselines.her.ker_learning_method import SINGLE_SUC_RATE_THRESHOLD,IF_CLEAR_BUFFER
 
 
 writer = SummaryWriter()
@@ -28,7 +28,7 @@ def mpi_average(value):
 
 def train(*, policy, rollout_worker, evaluator,
           n_epochs, n_test_rollouts, n_cycles, n_batches, policy_save_interval,
-          save_path, demo_file, env_name,n_rsym, **kwargs):
+          save_path, demo_file, env_name,n_ker, **kwargs):
     rank = MPI.COMM_WORLD.Get_rank()
 
     if save_path:
@@ -44,7 +44,7 @@ def train(*, policy, rollout_worker, evaluator,
     # num_timesteps = n_epochs * n_cycles * rollout_length * number of rollout workers
 
     # prepare the param for training on KER
-    n_rsym_number = n_rsym
+    n_ker_number = n_ker
     first_time_enter = True
     test_suc_rate = 0
     single_suc_rate_threshold = SINGLE_SUC_RATE_THRESHOLD
@@ -54,7 +54,7 @@ def train(*, policy, rollout_worker, evaluator,
         # train
         
         # #Terminate KER during training or not 
-        # if (single_suc_rate_threshold is not None) and (n_rsym_number !=0):
+        # if (single_suc_rate_threshold is not None) and (n_ker_number !=0):
         #     # int(xxx*10) to get rid of the float, and just enter once to terminate KER.
         #     if (int(test_suc_rate*10) == int(single_suc_rate_threshold*10) ) and first_time_enter:
         #         first_time_enter = False
@@ -66,8 +66,8 @@ def train(*, policy, rollout_worker, evaluator,
             # generate episodes
             episodes = rollout_worker.generate_rollouts(terminate_ker=terminate_ker_now)
             # with KER
-            # if (n_rsym_number !=0) and terminate_ker_now==False:
-            if (n_rsym_number !=0):
+            # if (n_ker_number !=0) and terminate_ker_now==False:
+            if (n_ker_number !=0):
                 for episode in episodes:
                     policy.store_episode(episode)
             # without KER
@@ -133,9 +133,9 @@ def learn(*, network, env, total_timesteps,
     override_params=None,
     load_path=None,
     save_path=None,
-    n_rsym = 0,
-    before_PER_minibatch_size = None,
-    n_PER = 0,
+    n_ker = 0,
+    before_GER_minibatch_size = None,
+    n_GER = 0,
     err_distance=0.05,
     **kwargs
 ):
@@ -151,8 +151,8 @@ def learn(*, network, env, total_timesteps,
 
     # Prepare params.
     params = config.DEFAULT_PARAMS
-    if before_PER_minibatch_size is not None and n_PER is not None :
-        params['batch_size'] = before_PER_minibatch_size * (n_PER+1)
+    if before_GER_minibatch_size is not None and n_GER is not None :
+        params['batch_size'] = before_GER_minibatch_size * (n_GER+1)
     env_name = env.spec.id
     params['env_name'] = env_name
     params['replay_strategy'] = replay_strategy
@@ -184,7 +184,7 @@ def learn(*, network, env, total_timesteps,
 
     dims = config.configure_dims(params)
     policy = config.configure_ddpg(dims=dims, params=params, clip_return=clip_return,
-                                    n_PER=n_PER,err_distance=err_distance,env_name=env_name)
+                                    n_GER=n_GER,err_distance=err_distance,env_name=env_name)
     if load_path is not None:
         tf_util.load_variables(load_path)
 
@@ -210,7 +210,7 @@ def learn(*, network, env, total_timesteps,
 
     eval_env = eval_env or env
 
-    rollout_worker = RolloutWorker(env_name, env, policy, dims, logger, monitor=True,n_rsym=n_rsym, **rollout_params)
+    rollout_worker = RolloutWorker(env_name, env, policy, dims, logger, monitor=True,n_ker=n_ker, **rollout_params)
     evaluator = RolloutWorker(env_name,eval_env, policy, dims, logger, **eval_params)
 
     n_cycles = params['n_cycles']
@@ -220,7 +220,7 @@ def learn(*, network, env, total_timesteps,
         save_path=save_path, policy=policy, rollout_worker=rollout_worker,
         evaluator=evaluator, n_epochs=n_epochs, n_test_rollouts=params['n_test_rollouts'],
         n_cycles=params['n_cycles'], n_batches=params['n_batches'],
-        policy_save_interval=policy_save_interval, demo_file=demo_file,env_name=env_name, n_rsym = n_rsym)
+        policy_save_interval=policy_save_interval, demo_file=demo_file,env_name=env_name, n_ker = n_ker)
 
 
 @click.command()

@@ -14,10 +14,10 @@ SINGLE_SUC_RATE_THRESHOLD = None  # Set to none if donnot terminate KER
 MAX_Z_THETA_PICK_PUSH = 0.1443
 MAX_Z_THETA_SLIDE = 0.0697
 BOOL_OUTPUT_ONE_EPISODE_TRAJ = False # Generated one episode KER trajectories for plotting
-class mirror_learning:
-    def __init__(self,env_type,n_rsym):
+class ker_learning:
+    def __init__(self,env_type,n_ker):
         self.env_type = env_type
-        self.n_rsym = n_rsym
+        self.n_ker = n_ker
         self.sym_plane = None
         if (self.env_type == 'FetchPickAndPlace-v1') or (self.env_type == 'FetchPush-v1' )or (self.env_type == 'FetchReach-v1' ) :
             self.max_z_theta= MAX_Z_THETA_PICK_PUSH
@@ -28,14 +28,14 @@ class mirror_learning:
             self.robot_base_x = 0.34
             self.robot_base_y = 0.75
 
-    def y_mirror(self,param):
-        return self.sym_plane_compute(param,'y_axis','y_mirror')
+    def y_ker(self,param):
+        return self.sym_plane_compute(param,'y_axis','y_ker')
 
-    def x_mirror():
-        self.sym_plane_compute(param,'x_axis','y_mirror')
+    def x_ker():
+        self.sym_plane_compute(param,'x_axis','y_ker')
 
 
-    def kaleidoscope_robot(self, param, z_theta, sym_axis = 'y_axis', sym_method = 'y_mirror'):
+    def kaleidoscope_robot(self, param, z_theta, sym_axis = 'y_axis', sym_method = 'y_ker'):
         
         if sym_axis == 'y_axis':
             # in linear variable, plus i; in angular variable, minus i
@@ -43,9 +43,9 @@ class mirror_learning:
         elif sym_axis == 'x_axis':
             i = -1
 
-        if sym_method == 'y_mirror':
+        if sym_method == 'y_ker':
             self.sym_plane = SYM_PLANE_Y
-        elif sym_method == 'x_mirror':
+        elif sym_method == 'x_ker':
             self.sym_plane = SYM_PLANE_X
 
         # compute the rotation transformation & its inverse.
@@ -77,7 +77,7 @@ class mirror_learning:
             s_v_l_a = self.linear_vector_symmetric_with_rot_plane(False, v_l_a, rot_z_theta, inv_rot_z_theta, i)
             param[0][3:6] =  s_v_l_a
             
-        elif param_len == 25:     # observation with object
+        elif param_len == 31:     # observation with object
             # sym_grip_pos
             v_l_a = param[0][0:3]
             s_v_l_a = self.linear_vector_symmetric_with_rot_plane(True, v_l_a, rot_z_theta, inv_rot_z_theta, i)
@@ -112,7 +112,17 @@ class mirror_learning:
             # sym_obj_velr
             theta_a = param[0][17:20]
             param[0][17:20] = self.orientation_mat_symmetric_with_rot_plane(theta_a, rot_z_theta, inv_rot_z_theta, i)
-        
+
+            if  param_len == 31:
+                # obstacle state
+                # 1. pos transform
+                v_l_a = param[0][25:28]
+                s_v_l_a = self.linear_vector_symmetric_with_rot_plane(True, v_l_a, rot_z_theta, inv_rot_z_theta, i)
+                param[0][25:28] =  s_v_l_a
+                # 2. rot transform
+                theta_a = param[0][28:31]
+                param[0][28:31] = self.orientation_mat_symmetric_with_rot_plane(theta_a, rot_z_theta, inv_rot_z_theta, i)
+
         return param.copy()
 
 
@@ -159,7 +169,7 @@ class mirror_learning:
 
 
     def sym_plane_compute(self,param,sym_axis,sym_method):
-        # This function is for the vanilla mirror. (x&y mirror)
+        # This function is for the vanilla ker. (x&y ker)
         if sym_axis == 'y_axis':
             # in linear variable, plus i; in angular variable, minus i
             i = 0
@@ -167,9 +177,9 @@ class mirror_learning:
             i = -1
 
 
-        if sym_method == 'y_mirror':
+        if sym_method == 'y_ker':
             self.sym_plane = SYM_PLANE_Y
-        elif sym_method == 'x_mirror':
+        elif sym_method == 'x_ker':
             self.sym_plane = SYM_PLANE_X
         # elif sym_method == 'kaleidoscope_robot':
         #     SYM_PLANE = SYM_PLANE_Y
@@ -211,10 +221,16 @@ class mirror_learning:
             # sym_obj_velr
             param[0][17-i] = -param[0][17-i]
             param[0][19] = -param[0][19]
+
+            if  param_len == 31:
+            # obstacle state
+                param[0][26+i] = self.sym_plane - param[0][26+i]
+                param[0][28-i] = -param[0][28-i]
+                param[0][30] = -param[0][30]
         return param.copy()
 
 
-    def mirror_process(self,obs,acts,goals,achieved_goals):
+    def ker_process(self,obs,acts,goals,achieved_goals):
 
 
         # ---------------------------linear symmetry------------------------------------------------
@@ -222,10 +238,10 @@ class mirror_learning:
         ka_episodes_set.append([obs,acts,goals,achieved_goals])
         z_theta_set = []
 
-        # If self.n_rsym == None, means use vanillar her, or in test mode.
-        if self.n_rsym == None or self.n_rsym == 0:
+        # If self.n_ker == None, means use vanillar her, or in test mode.
+        if self.n_ker == None or self.n_ker == 0:
             if BOOL_OUTPUT_ONE_EPISODE_TRAJ:
-                np.save(('/home/bourne/data_plot/visualized_plot_ker_traj/all_n_rsym_trajs/sym_'+str(self.n_rsym)+'.npy'), ka_episodes_set)
+                np.save(('/home/bourne/data_plot/visualized_plot_ker_traj/all_n_ker_trajs/sym_'+str(self.n_ker)+'.npy'), ka_episodes_set)
                 set_trace()
             return ka_episodes_set
 
@@ -233,8 +249,8 @@ class mirror_learning:
         # not finished yet
         # self.compute_sym_number(goals[0][0])
 
-        # One symmetry will be done in the y mirror, so here n_rsym need to minus 1 
-        for _ in range(self.n_rsym-1):
+        # One symmetry will be done in the y ker, so here n_ker need to minus 1 
+        for _ in range(self.n_ker-1):
             z_theta = np.random.uniform(0, self.max_z_theta)
             z_theta_set.append(z_theta)
 
@@ -242,7 +258,7 @@ class mirror_learning:
             #output the symmetric thetas for one step 
             output_theta_set = z_theta_set.copy()
             output_theta_set.append(0)
-            save_dir = '/home/bourne/data_plot/visualized_plot_ker_traj/all_n_rsym_trajs/thetas_n_rsym_'+str(self.n_rsym)+'.npy'
+            save_dir = '/home/bourne/data_plot/visualized_plot_ker_traj/all_n_ker_trajs/thetas_n_ker_'+str(self.n_ker)+'.npy'
             np.save(save_dir, output_theta_set)
 
         ka_episodes_tem = []
@@ -275,34 +291,34 @@ class mirror_learning:
         # ---------------------------end
 
         #--------------- All datas are symmetrized with y axis.
-        ymirror_episode_set = []
+        yker_episode_set = []
         for [o_obs, o_acts, o_goals, o_achieved_goals] in ka_episodes_set:
             y_goals = []
             y_obs = []
             y_acts = []
             y_achieved_goals = []
             for goal in o_goals:
-                y_goal = self.y_mirror(goal.copy())
+                y_goal = self.y_ker(goal.copy())
                 y_goals.append(y_goal.copy())
 
             for ob in o_obs:
-                y_ob = self.y_mirror(ob.copy())
+                y_ob = self.y_ker(ob.copy())
                 y_obs.append(y_ob.copy())
 
             for act in o_acts:
-                y_act = self.y_mirror(act.copy())
+                y_act = self.y_ker(act.copy())
                 y_acts.append(y_act.copy())
 
             for achieved_goal in o_achieved_goals:
-                y_achieved_goal = self.y_mirror(achieved_goal.copy())
+                y_achieved_goal = self.y_ker(achieved_goal.copy())
                 y_achieved_goals.append(y_achieved_goal.copy())
-            ymirror_episode_set.append([y_obs, y_acts, y_goals, y_achieved_goals])
-        for ymirror_episode in ymirror_episode_set:
-            ka_episodes_set.append(ymirror_episode)
+            yker_episode_set.append([y_obs, y_acts, y_goals, y_achieved_goals])
+        for yker_episode in yker_episode_set:
+            ka_episodes_set.append(yker_episode)
 
         # output the trajs for one step
         if BOOL_OUTPUT_ONE_EPISODE_TRAJ:
-            np.save(('/home/bourne/data_plot/visualized_plot_ker_traj/all_n_rsym_trajs/trajs_n_rsym_'+str(self.n_rsym)+'.npy'), ka_episodes_set)
+            np.save(('/home/bourne/data_plot/visualized_plot_ker_traj/all_n_ker_trajs/trajs_n_ker_'+str(self.n_ker)+'.npy'), ka_episodes_set)
             set_trace()
         return ka_episodes_set
         #--------------- end.

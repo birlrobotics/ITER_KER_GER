@@ -1,5 +1,5 @@
 import numpy as np
-from baselines.her.imaginary import imaginary_learning
+from baselines.her.ger_learning_method import ger_learning
 from ipdb import set_trace
 
 
@@ -17,7 +17,7 @@ def make_sample_her_transitions(replay_strategy, replay_k, reward_fun):
         future_p = 1 - (1. / (1 + replay_k))
     else:  # 'replay_strategy' == 'none'
         future_p = 0
-    def _sample_her_transitions(episode_batch, batch_size_in_transitions,env_name=None, n_PER=0,err_distance=0.05):
+    def _sample_her_transitions(episode_batch, batch_size_in_transitions,env_name=None, n_GER=0,err_distance=0.05):
         """episode_batch is {key: array(buffer_size x T x dim_key)}
         """
         T = episode_batch['u'].shape[1]
@@ -49,23 +49,23 @@ def make_sample_her_transitions(replay_strategy, replay_k, reward_fun):
         all_transitions = {key: transitions[key].copy()
                         for key in episode_batch.keys()}
 
-
-        if n_PER:
-            # when n_PER != 0
-            for _ in range (n_PER):
+        # ----------------Goal-augmented ER--------------------------- 
+        if n_GER:
+            # when n_GER != 0
+            for _ in range (n_GER):
                 PER_transitions = {key: transitions[key].copy()
                         for key in episode_batch.keys()}
-                imagined_machine = imaginary_learning(env_name = env_name,err_distance=err_distance)
+                ger_machine = ger_learning(env_name = env_name,err_distance=err_distance)
                 PER_indexes= np.array((range(0,batch_size)))
                 HER_KER_future_ag = PER_transitions['g'][PER_indexes].copy()
-                PER_future_g = imagined_machine.process_goals(HER_KER_future_ag.copy())
+                PER_future_g = ger_machine.process_goals(HER_KER_future_ag.copy())
                 PER_transitions['g'][PER_indexes] = PER_future_g.copy()
                 for key in episode_batch.keys():
                     all_transitions[key] = np.vstack([all_transitions[key], PER_transitions[key].copy()])
+        # -----------------------End--------------------------- 
 
-            # when n_PER = 0
-        # After AGER, the minibatch size enlarged
-        batch_size = batch_size * (1+n_PER)
+        # After GER, the minibatch size enlarged
+        batch_size = batch_size * (1+n_GER)
         batch_size_in_transitions =batch_size
 
         # Reconstruct info dictionary for reward  computation.

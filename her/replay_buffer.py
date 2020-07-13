@@ -34,9 +34,9 @@ class ReplayBuffer:
         with self.lock:
             return self.current_size == self.size
 
-    def sample(self, batch_size,env_name=None,n_PER=0,err_distance=0.05):
+    def sample(self, batch_size,env_name=None,n_GER=0,err_distance=0.05):
         """Returns a dict {key: array(batch_size x shapes[key])}
-            batch_size is before_PER_batch_size
+            batch_size is before_GER_batch_size
         """
         buffers = {}
 
@@ -47,7 +47,7 @@ class ReplayBuffer:
 
         buffers['o_2'] = buffers['o'][:, 1:, :]
         buffers['ag_2'] = buffers['ag'][:, 1:, :]
-        transitions = self.sample_transitions(buffers, batch_size,env_name=env_name, n_PER=n_PER,err_distance=err_distance)
+        transitions = self.sample_transitions(buffers, batch_size,env_name=env_name, n_GER=n_GER,err_distance=err_distance)
         for key in (['r', 'o_2', 'ag_2'] + list(self.buffers.keys())):
             assert key in transitions, "key %s missing from transitions" % key
 

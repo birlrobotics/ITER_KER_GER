@@ -6,7 +6,7 @@ import math
 from math import pi,cos,sin,acos
 
 
-class imaginary_learning:
+class ger_learning:
     def __init__(self,env_name=None,err_distance = 0.05):
         self.err_distance = err_distance
         self.env_name = env_name
@@ -18,6 +18,7 @@ class imaginary_learning:
         for i,(offset_x,offset_y,offset_z) in enumerate(zip(xs,ys,zs)):
             goals[i] = goals[i] + np.array([offset_x,offset_y,offset_z])
         if  self.env_name == "FetchSlide-v1" or self.env_name == "BaxterSlide-v1":
+            # in case the augmented goal is out of the desk.
             for aug_goal in goals:
                 if aug_goal[1]> 1.2:
                     aug_goal[1] = 1.2

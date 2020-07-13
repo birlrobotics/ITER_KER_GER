@@ -5,8 +5,8 @@ import pickle
 
 from baselines.her.util import convert_episode_to_batch_major, store_args
 from ipdb import set_trace
-from baselines.her.mirror_learning_method import mirror_learning
-# from baselines.her.imaginary import imaginary_learning
+from baselines.her.ker_learning_method import ker_learning
+# from baselines.her.ger_learning_method import ger_learning
 
 
 
@@ -15,7 +15,7 @@ class RolloutWorker:
     @store_args
     def __init__(self, env_name, venv, policy, dims, logger, T, rollout_batch_size=1,
                  exploit=False, use_target_net=False, compute_Q=False, noise_eps=0,
-                 random_eps=0, history_len=100, render=False, monitor=False,n_rsym=0,
+                 random_eps=0, history_len=100, render=False, monitor=False,n_ker=0,
                   **kwargs):
         """Rollout worker generates experience by interacting with one or many environments.
 
@@ -46,8 +46,8 @@ class RolloutWorker:
         self.n_episodes = 0
         self.reset_all_rollouts()
         self.clear_history()
-        self.n_rsym = n_rsym
-        self.mirror = mirror_learning(env_name,n_rsym)
+        self.n_ker = n_ker
+        self.ker = ker_learning(env_name,n_ker)
 
 
     def reset_all_rollouts(self):
@@ -57,9 +57,9 @@ class RolloutWorker:
         self.g = self.obs_dict['desired_goal']
 
     def generate_rollouts(self,terminate_ker=False):
-        # if self.n_rsym and terminate_ker==False:
+        # if self.n_ker and terminate_ker==False:
         
-        if self.n_rsym:
+        if self.n_ker:
             return self.generate_rollouts_ker()
         else :
             return self.generate_rollouts_vanilla()
@@ -228,14 +228,9 @@ class RolloutWorker:
         obs.append(o.copy())
         achieved_goals.append(ag.copy())
 
-        # ----------------Mirror Augmentation--------------------------- 
-        original_ka_episodes = self.mirror.mirror_process(obs,acts,goals,achieved_goals)
+        # ----------------Kaleidoscope ER--------------------------- 
+        original_ka_episodes = self.ker.ker_process(obs,acts,goals,achieved_goals)
         # ----------------end---------------------------
-
-        # ----------------Imaginary Augmentation--------------------------- 
-        # imagined_ka_episodes = self.imagined_machine.imagine_process(original_ka_episodes)
-        # ----------------end---------------------------
-
 
 
 
@@ -270,7 +265,7 @@ class RolloutWorker:
 
         return episodes_batch
 
-    def mirror_learning_type(self):
+    def ker_learning_type(self):
         pass
 
 
