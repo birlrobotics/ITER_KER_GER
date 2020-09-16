@@ -15,9 +15,9 @@ MAX_Z_THETA_PICK_PUSH = 0.1443
 MAX_Z_THETA_SLIDE = 0.0697
 BOOL_OUTPUT_ONE_EPISODE_TRAJ = False # Generated one episode KER trajectories for plotting
 class ker_learning:
-    def __init__(self,env_type,n_ker):
+    def __init__(self,env_type,n_KER):
         self.env_type = env_type
-        self.n_ker = n_ker
+        self.n_KER = n_KER
         self.sym_plane = None
         if (self.env_type == 'FetchPickAndPlace-v1') or (self.env_type == 'FetchPush-v1' )or (self.env_type == 'FetchReach-v1' ) :
             self.max_z_theta= MAX_Z_THETA_PICK_PUSH
@@ -73,11 +73,11 @@ class ker_learning:
             s_v_l_a = self.linear_vector_symmetric_with_rot_plane(True, v_l_a, rot_z_theta, inv_rot_z_theta, i)
             param[0][0:3] =  s_v_l_a
             # grip vel
-            v_l_a = param[0][3:6]
+            v_l_a = param[0][5:8]
             s_v_l_a = self.linear_vector_symmetric_with_rot_plane(False, v_l_a, rot_z_theta, inv_rot_z_theta, i)
-            param[0][3:6] =  s_v_l_a
+            param[0][5:8] =  s_v_l_a
             
-        elif param_len == 31:     # observation with object
+        elif param_len >= 25:     # observation with object
             # sym_grip_pos
             v_l_a = param[0][0:3]
             s_v_l_a = self.linear_vector_symmetric_with_rot_plane(True, v_l_a, rot_z_theta, inv_rot_z_theta, i)
@@ -195,9 +195,9 @@ class ker_learning:
         elif param_len == 10:     # observation without object
             param[0][1+i] = self.sym_plane - param[0][1+i]
             # vel do not need SYM_PLANE
-            param[0][4+i] = -param[0][4+i]
+            param[0][6+i] = -param[0][6+i]
             
-        elif param_len == 25:     # observation with object
+        elif param_len >= 25:     # observation with object
 
             # sym_grip_pos
             param[0][1+i] = self.sym_plane - param[0][1+i]
@@ -238,10 +238,10 @@ class ker_learning:
         ka_episodes_set.append([obs,acts,goals,achieved_goals])
         z_theta_set = []
 
-        # If self.n_ker == None, means use vanillar her, or in test mode.
-        if self.n_ker == None or self.n_ker == 0:
+        # If self.n_KER == None, means use vanillar her, or in test mode.
+        if self.n_KER == None or self.n_KER == 0:
             if BOOL_OUTPUT_ONE_EPISODE_TRAJ:
-                np.save(('/home/bourne/data_plot/visualized_plot_ker_traj/all_n_ker_trajs/sym_'+str(self.n_ker)+'.npy'), ka_episodes_set)
+                np.save(('/home/bourne/data_plot/visualized_plot_ker_traj/all_n_KER_trajs/sym_'+str(self.n_KER)+'.npy'), ka_episodes_set)
                 set_trace()
             return ka_episodes_set
 
@@ -249,8 +249,8 @@ class ker_learning:
         # not finished yet
         # self.compute_sym_number(goals[0][0])
 
-        # One symmetry will be done in the y ker, so here n_ker need to minus 1 
-        for _ in range(self.n_ker-1):
+        # One symmetry will be done in the y ker, so here n_KER need to minus 1 
+        for _ in range(self.n_KER-1):
             z_theta = np.random.uniform(0, self.max_z_theta)
             z_theta_set.append(z_theta)
 
@@ -258,7 +258,7 @@ class ker_learning:
             #output the symmetric thetas for one step 
             output_theta_set = z_theta_set.copy()
             output_theta_set.append(0)
-            save_dir = '/home/bourne/data_plot/visualized_plot_ker_traj/all_n_ker_trajs/thetas_n_ker_'+str(self.n_ker)+'.npy'
+            save_dir = '/home/bourne/data_plot/visualized_plot_ker_traj/all_n_KER_trajs/thetas_n_KER_'+str(self.n_KER)+'.npy'
             np.save(save_dir, output_theta_set)
 
         ka_episodes_tem = []
@@ -318,7 +318,7 @@ class ker_learning:
 
         # output the trajs for one step
         if BOOL_OUTPUT_ONE_EPISODE_TRAJ:
-            np.save(('/home/bourne/data_plot/visualized_plot_ker_traj/all_n_ker_trajs/trajs_n_ker_'+str(self.n_ker)+'.npy'), ka_episodes_set)
+            np.save(('/home/bourne/data_plot/visualized_plot_ker_traj/all_n_KER_trajs/trajs_n_KER_'+str(self.n_KER)+'.npy'), ka_episodes_set)
             set_trace()
         return ka_episodes_set
         #--------------- end.

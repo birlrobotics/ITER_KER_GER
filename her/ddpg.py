@@ -25,7 +25,7 @@ class DDPG(object):
                  Q_lr, pi_lr, norm_eps, norm_clip, max_u, action_l2, clip_obs, scope, T,
                  rollout_batch_size, subtract_goals, relative_goals, clip_pos_returns, clip_return,
                  bc_loss, q_filter, num_demo, demo_batch_size, prm_loss_weight, aux_loss_weight,
-                 sample_transitions, gamma, reuse=False,n_GER=0,err_distance=0.05,n_ker=0,env_name=None, **kwargs):
+                 sample_transitions, gamma, reuse=False,n_GER=0,err_distance=0.05,n_KER=0,env_name=None, **kwargs):
         """Implementation of DDPG that is used in combination with Hindsight Experience Replay (HER).
             Added functionality to use demonstrations for training to Overcome exploration problem.
 
@@ -107,7 +107,7 @@ class DDPG(object):
         DEMO_BUFFER = ReplayBuffer(buffer_shapes, buffer_size, self.T, self.sample_transitions) #initialize the demo buffer; in the same way as the primary data buffer
         self.n_GER= n_GER
         self.err_distance = err_distance
-        self.n_ker = n_ker
+        self.n_KER = n_KER
         self.env_name = env_name
     def _random_action(self, n):
         return np.random.uniform(low=-self.max_u, high=self.max_u, size=(n, self.dimu))

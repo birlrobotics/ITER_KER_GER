@@ -15,7 +15,7 @@ class RolloutWorker:
     @store_args
     def __init__(self, env_name, venv, policy, dims, logger, T, rollout_batch_size=1,
                  exploit=False, use_target_net=False, compute_Q=False, noise_eps=0,
-                 random_eps=0, history_len=100, render=False, monitor=False,n_ker=0,
+                 random_eps=0, history_len=100, render=False, monitor=False,n_KER=0,
                   **kwargs):
         """Rollout worker generates experience by interacting with one or many environments.
 
@@ -46,8 +46,8 @@ class RolloutWorker:
         self.n_episodes = 0
         self.reset_all_rollouts()
         self.clear_history()
-        self.n_ker = n_ker
-        self.ker = ker_learning(env_name,n_ker)
+        self.n_KER = n_KER
+        self.ker = ker_learning(env_name,n_KER)
 
 
     def reset_all_rollouts(self):
@@ -57,9 +57,9 @@ class RolloutWorker:
         self.g = self.obs_dict['desired_goal']
 
     def generate_rollouts(self,terminate_ker=False):
-        # if self.n_ker and terminate_ker==False:
+        # if self.n_KER and terminate_ker==False:
         
-        if self.n_ker:
+        if self.n_KER:
             return self.generate_rollouts_ker()
         else :
             return self.generate_rollouts_vanilla()

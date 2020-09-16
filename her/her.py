@@ -28,7 +28,7 @@ def mpi_average(value):
 
 def train(*, policy, rollout_worker, evaluator,
           n_epochs, n_test_rollouts, n_cycles, n_batches, policy_save_interval,
-          save_path, demo_file, env_name,n_ker, **kwargs):
+          save_path, demo_file, env_name,n_KER, **kwargs):
     rank = MPI.COMM_WORLD.Get_rank()
 
     if save_path:
@@ -44,7 +44,7 @@ def train(*, policy, rollout_worker, evaluator,
     # num_timesteps = n_epochs * n_cycles * rollout_length * number of rollout workers
 
     # prepare the param for training on KER
-    n_ker_number = n_ker
+    n_KER_number = n_KER
     first_time_enter = True
     test_suc_rate = 0
     single_suc_rate_threshold = SINGLE_SUC_RATE_THRESHOLD
@@ -54,7 +54,7 @@ def train(*, policy, rollout_worker, evaluator,
         # train
         
         # #Terminate KER during training or not 
-        # if (single_suc_rate_threshold is not None) and (n_ker_number !=0):
+        # if (single_suc_rate_threshold is not None) and (n_KER_number !=0):
         #     # int(xxx*10) to get rid of the float, and just enter once to terminate KER.
         #     if (int(test_suc_rate*10) == int(single_suc_rate_threshold*10) ) and first_time_enter:
         #         first_time_enter = False
@@ -66,8 +66,8 @@ def train(*, policy, rollout_worker, evaluator,
             # generate episodes
             episodes = rollout_worker.generate_rollouts(terminate_ker=terminate_ker_now)
             # with KER
-            # if (n_ker_number !=0) and terminate_ker_now==False:
-            if (n_ker_number !=0):
+            # if (n_KER_number !=0) and terminate_ker_now==False:
+            if (n_KER_number !=0):
                 for episode in episodes:
                     policy.store_episode(episode)
             # without KER
@@ -133,7 +133,7 @@ def learn(*, network, env, total_timesteps,
     override_params=None,
     load_path=None,
     save_path=None,
-    n_ker = 0,
+    n_KER = 0,
     before_GER_minibatch_size = None,
     n_GER = 0,
     err_distance=0.05,
@@ -210,7 +210,7 @@ def learn(*, network, env, total_timesteps,
 
     eval_env = eval_env or env
 
-    rollout_worker = RolloutWorker(env_name, env, policy, dims, logger, monitor=True,n_ker=n_ker, **rollout_params)
+    rollout_worker = RolloutWorker(env_name, env, policy, dims, logger, monitor=True,n_KER=n_KER, **rollout_params)
     evaluator = RolloutWorker(env_name,eval_env, policy, dims, logger, **eval_params)
 
     n_cycles = params['n_cycles']
@@ -220,7 +220,7 @@ def learn(*, network, env, total_timesteps,
         save_path=save_path, policy=policy, rollout_worker=rollout_worker,
         evaluator=evaluator, n_epochs=n_epochs, n_test_rollouts=params['n_test_rollouts'],
         n_cycles=params['n_cycles'], n_batches=params['n_batches'],
-        policy_save_interval=policy_save_interval, demo_file=demo_file,env_name=env_name, n_ker = n_ker)
+        policy_save_interval=policy_save_interval, demo_file=demo_file,env_name=env_name, n_KER = n_KER)
 
 
 @click.command()
