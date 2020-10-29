@@ -133,5 +133,5 @@ For more information please check:
 
 `ITER_KER_GER` is maintained by the BIRL Intelligent Manipulation group. Contributors include:
 
-- Yijiong Lin (Bourne), 2111701025@mail2.gdut.edu.cn （Currently looking for 2020 fall Ph.D/MRes Program）
+- Yijiong Lin (Bourne), yijiong.lin@bristol.ac.uk 
 - Jiancong Huang (Jim), huangjiancong863@gmail.com （Currently looking for 2021 fall Ph.D/MRes Program）
